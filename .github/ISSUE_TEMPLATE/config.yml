@@ -1,0 +1,10 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Documentation
+    url: https://github.com/webman/dmc-1-t1-notebook-mono#readme
+    about: Check documentation first
+
+  - name: Discussions
+    url: https://github.com/webman/dmc-1-t1-notebook-mono/discussions
+    about: Ask questions here
