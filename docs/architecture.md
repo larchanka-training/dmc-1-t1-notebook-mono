@@ -23,7 +23,7 @@
          ▼                 ▼
 ┌─────────────────────┐ ┌─────────────────────┐
 │    Python Backend   │ │     Frontend        │
-│ FastAPI Application │ │   React / Next.js   │
+│ FastAPI Application │ │       React         │
 └────┬────────────┬───┘ └─────────────────────┘
      │            │
      ▼            ▼
@@ -37,7 +37,7 @@
 ### Technology Stack
 | Component | Technology |
 | --- | --- |
-| Framework | React / Next.js |
+| Framework | React |
 | State Management | Redux |
 | Routing | React Router |
 | Language | TypeScript |
