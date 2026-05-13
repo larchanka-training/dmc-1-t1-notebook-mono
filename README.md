@@ -1,184 +1,27 @@
-# Монорепозиторий проекта
+# Notebook Project Monorepo
 
-Этот репозиторий содержит все основные сервисы проекта (Frontend, Backend, База данных, pgAdmin, reverse-proxy и др.) и предоставляет удобный способ локального запуска через Docker.
+This repository contains all the main project services (Frontend, Backend, Database, pgAdmin, reverse-proxy, etc.) and provides a convenient way to run everything locally using Docker.
 
-Для работы необходим установленный **Docker** (или Docker Desktop).
-
----
-
-# Зачем это всё нужно
-
-### Docker — одинаковая среда у всей команды
-
-Все сервисы запускаются в контейнерах, что гарантирует одинаковую конфигурацию у всех разработчиков и исключает проблемы «работает у меня / не работает у тебя».
-
-### Локальные домены (notebook.com и поддомены)
-
-Используются для:
-- корректной работы cookies (особенно **SameSite**, secure cookies),
-- корректной работы OAuth / redirect-URL,
-- настройки reverse-proxy через виртуальные хосты,
-- эмуляции production-инфраструктуры.
-
-### HTTPS даже локально
-
-Самоподписанный сертификат позволяет использовать:
-- secure cookies,
-- сервис-воркеры,
-- API, требующие https,
-- корректную работу auth-процессов.
-
-Браузер предупредит, что сертификат небезопасный — это нормально для dev. Нужно нажать **Advanced → Continue anyway**.
+**Docker** (or Docker Desktop) is required.
 
 ---
 
-# Настройка локальных доменов
+## Getting Started
 
-Чтобы `notebook.com`, `api.notebook.com` и `pgadmin.notebook.com` открывались локально, добавьте в файл hosts:
+See [docs/guides/local-setup.md](docs/guides/local-setup.md) for the full local setup guide, including:
 
-```
-127.0.0.1 notebook.com
-127.0.0.1 api.notebook.com
-127.0.0.1 pgadmin.notebook.com
-```
-
-## Как изменить `hosts`
-
-### macOS / Linux:
-
-`sudo nano /etc/hosts`
-
-### Windows:
-
-Открыть блокнот от имени администратора → файл:  
-`C:\Windows\System32\drivers\etc\hosts`
-
-После изменений желательно перезагрузить DNS-кэш (например, `ipconfig /flushdns` на Windows).
+- Why Docker and local domains are used
+- How to configure your `hosts` file
+- How to run and stop the project
+- Available service URLs
+- Useful commands and troubleshooting
 
 ---
 
-# Запуск проекта локально
+## QA Documentation
 
-В корне проекта выполните:
-
-```
-chmod +x start-services.sh
-./start-services.sh
-```
-
-## Остановка сервисов
-
-Для остановки всех сервисов в корне проекта выполните:
-
-`docker-compose down`
-
----
-
-# Что делает `start-services.sh` (подробное объяснение)
-
-Скрипт автоматизирует весь процесс запуска: поднимает контейнеры Docker, запускает backend и frontend в dev-режиме и подготавливает окружение.
-
-### 1. Останавливает выполнение при любой ошибке
-
-Скрипт завершает работу, если что-то идёт не так. Это защищает от некорректного запуска.
-
-### 2. Запускает docker-compose
-
-Поднимаются все сервисы из `docker-compose.yml`: база данных, API-контейнер, frontend-контейнер, pgAdmin, прокси и т.д.
-
-### 3. Делает паузу
-
-Ждёт некоторое время, чтобы контейнеры успели полностью подняться.
-
-### 4. Запускает backend внутри его контейнера
-
-Скрипт:
-- находит контейнер API,
-- устанавливает Python-зависимости (`pip install`),
-- запускает FastAPI в режиме разработки.
-
-Все команды выполняются **внутри контейнера**, автоматически.
-
-### 5. Запускает frontend внутри его контейнера
-
-Скрипт:
-- находит контейнер фронтенда,
-- устанавливает npm-зависимости,
-- запускает dev-сервер.
-
-Также внутри контейнера и без участия разработчика.
-
-### 6. Выводит сообщение об успешном запуске
-
-Frontend и backend готовы к работе.
-
----
-
-# Доступные адреса после запуска
-
-- **[https://notebook.com](https://notebook.com/)** — фронтенд
-- **[https://api.notebook.com](https://api.notebook.com/)** — API
-- **[https://pgadmin.notebook.com](https://pgadmin.notebook.com/)** — веб-интерфейс PostgreSQL
-
-При первом заходе может появиться предупреждение о сертификате — это ожидаемо.
-
----
-
-# Предупреждение о самоподписанном сертификате
-
-Браузер покажет сообщение о небезопасном соединении.  
-Можно смело нажимать:
-
-**Advanced → Continue to site / Всё равно перейти**
-
-Это типично для локальной разработки.
-
-Если хотите полноценный dev-https без предупреждений — используйте `mkcert` для генерации доверенного локального сертификата (можно добавить инструкции).
-
----
-
-# Полезные команды
-
-### Просмотр контейнеров
-
-`docker ps`
-
-### Логи сервисов
-
-`docker compose logs -f`
-
-### Остановка всех сервисов
-
-`docker compose down`
-
-### Пересборка
-
-`docker compose up -d --build`
-
----
-
-# Возможные проблемы и решения
-
-### ❗ Сайт не открывается
-
-Проверьте:
-- hosts-файл,
-- что контейнеры запущены (`docker ps`),
-- логи (`docker compose logs`).
-
-### ❗ Порт занят
-
-Узнайте, кто его использует: `lsof -i :80 lsof -i :443`
-
-или на Windows: `netstat -a -b`
-
-### ❗ Предупреждение о сертификате
-
-Это нормально. Нажмите «Continue».  
-Чтобы убрать предупреждения — используйте `mkcert`.
-
-### ❗ frontend или backend не запустились
-
-Проверьте:
-- что контейнер найден (имя совпадает с ожидаемым),
-- что зависимости корректно установились.
+- [QA Plan](docs/qa/qa-plan.md)
+- [Definition of Done](docs/qa/definition-of-done.md)
+- [PR Manual Check Process](docs/qa/pr-manual-check-process.md)
+- [Acceptance Criteria Template](docs/qa/acceptance-criteria-template.md)
+- [Bug Report Template](docs/qa/bug-template.md)
