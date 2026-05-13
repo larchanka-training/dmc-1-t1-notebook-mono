@@ -39,7 +39,7 @@ Develop a web application for working with AI tools, JavaScript code, data stora
 # Frontend Requirements
 
 ## Technology
-- React / Next.js
+- React
 - TypeScript
 - TailwindCSS
 - Zustand / Redux
