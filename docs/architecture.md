@@ -47,7 +47,7 @@
 
 ### Frontend Structure
 ```text
-frontend/
+ui/
 ├── src/
 │   ├── api/
 │   ├── components/
@@ -81,7 +81,7 @@ frontend/
 
 ### Backend Structure
 ```text
-backend/
+api/
 ├── app/
 │   ├── api/
 │   ├── services/
