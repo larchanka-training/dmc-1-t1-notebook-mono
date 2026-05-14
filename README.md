@@ -24,4 +24,4 @@ See [docs/guides/local-setup.md](docs/guides/local-setup.md) for the full local 
 - [Definition of Done](docs/qa/definition-of-done.md)
 - [PR Manual Check Process](docs/qa/pr-manual-check-process.md)
 - [Acceptance Criteria Template](docs/qa/acceptance-criteria-template.md)
-- [Bug Report Template](docs/qa/bug-template.md)
+- [Bug Reporting Guide](docs/qa/bug-reporting-guide.md)
