@@ -55,6 +55,14 @@ After making changes, flush your DNS cache (e.g., `ipconfig /flushdns` on Window
 
 ## Running the Project Locally
 
+### Step 0. Prepare .env
+
+```bash
+cp .env.example .env
+```
+
+Open `.env` and replace all values marked `[REQUIRED]`.
+
 **macOS / Linux:**
 
 ```bash
