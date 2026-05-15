@@ -72,6 +72,16 @@ services:
     volumes:
       - pgadmin-data:/var/lib/pgadmin
 
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:latest
+    ports:
+      - "18888:18888"  # UI
+      - "4317:18889"   # OTLP gRPC
+      - "4318:18890"   # OTLP HTTP
+    environment:
+      DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
+    restart: unless-stopped
+
   proxy:
     container_name: proxy
     build:
