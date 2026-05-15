@@ -12,7 +12,7 @@ services:
       postgres:
         condition: service_healthy
     stdin_open: true
-    command: npm run dev -- --host
+    command: sh -c "npm ci --prefer-offline && npm run dev -- --host"
 
   api:
     build:
