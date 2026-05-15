@@ -1,34 +1,53 @@
 ---
-name: Bug report
-about: Create a report to help us improve
-title: "[BUG] "
-labels: bug
+name: "Bug report: UI"
+about: Report a frontend or visual bug
+title: "[BUG][UI] "
+labels: bug, ui
 assignees: ""
 ---
 
-## Description
+## Summary
 
-Describe the bug clearly.
+<!-- One sentence: what is broken, where in the UI, and the impact. -->
 
-## Steps To Reproduce
+## Environment
+
+- App / module:
+- Version / build / commit:
+- Environment: dev | staging | prod
+- Browser / version:
+- OS / device:
+- Viewport / resolution:
+- User account / role (if relevant):
+- Date and time observed:
+
+## Preconditions
+
+<!-- State the system must be in before reproduction. E.g. "logged in as a paid user, cart contains 2 items". -->
+
+## Steps to Reproduce
 
 1.
 2.
 3.
 
-## Expected Behavior
+## Expected Result
 
-What should happen?
+<!-- What should happen? Reference the acceptance criterion if available. -->
 
-## Actual Behavior
+## Actual Result
 
-What actually happens?
+<!-- What actually happens? Describe the visible UI state, console errors, or broken layout. -->
 
-## Environment
+## Severity
 
-- OS:
-- Browser / Version:
+<!-- Pick one: Critical | Major | Minor. See docs/qa/bug-reporting-guide.md for definitions. -->
 
-## Additional Context
+## Attachments
 
-Any extra information.
+- Screenshot / video:
+- Browser console errors:
+
+## Additional Notes
+
+<!-- Frequency (always / intermittent), suspected cause, recent related changes, workarounds, related tickets. -->
