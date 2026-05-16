@@ -3,6 +3,7 @@ services:
     build:
       context: ./ui
       dockerfile: Dockerfile
+      target: builder
     ports:
       - "3000:5173"
     volumes:
