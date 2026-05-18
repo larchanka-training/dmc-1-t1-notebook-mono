@@ -1,0 +1,31 @@
+name: Update Submodules
+
+on:
+  repository_dispatch:
+    types: [submodule-update]
+
+jobs:
+  update-submodules:
+    name: Update submodules to latest main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout mono repo with submodules
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.MONO_REPO_PAT }}
+          submodules: recursive
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update submodules to latest
+        run: git submodule update --remote --merge
+
+      - name: Commit and push if submodules changed
+        run: |
+          git diff --quiet && git diff --staged --quiet && echo "No changes, skipping commit" && exit 0
+          git add .
+          git commit -m "chore: update submodules to latest"
+          git push
