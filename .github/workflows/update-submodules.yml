@@ -31,6 +31,17 @@ jobs:
             echo "No changes, skipping PR"
             exit 0
           fi
+
+          # Close old open PRs and delete their branches
+          gh pr list --search "chore: update submodules to latest in:title" --state open --json number,headRefName \
+            | jq -c '.[]' \
+            | while read -r pr; do
+                NUMBER=$(echo "$pr" | jq -r '.number')
+                BRANCH=$(echo "$pr" | jq -r '.headRefName')
+                echo "Closing PR #$NUMBER and deleting branch $BRANCH"
+                gh pr close "$NUMBER" --delete-branch
+              done
+
           BRANCH="chore/update-submodules-$(date +%Y%m%d-%H%M%S)"
           git checkout -b "$BRANCH"
           git add .
