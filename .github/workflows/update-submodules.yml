@@ -23,9 +23,21 @@ jobs:
       - name: Update submodules to latest
         run: git submodule update --remote --force
 
-      - name: Commit and push if submodules changed
+      - name: Create PR if submodules changed
+        env:
+          GH_TOKEN: ${{ secrets.MONO_REPO_PAT }}
         run: |
-          git diff --quiet && git diff --staged --quiet && echo "No changes, skipping commit" && exit 0
+          if git diff --quiet && git diff --staged --quiet; then
+            echo "No changes, skipping PR"
+            exit 0
+          fi
+          BRANCH="chore/update-submodules-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$BRANCH"
           git add .
           git commit -m "chore: update submodules to latest"
-          git push
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "chore: update submodules to latest" \
+            --body "Automated submodule update triggered by a merge in API or UI repository." \
+            --base main \
+            --head "$BRANCH"
