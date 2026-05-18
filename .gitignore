@@ -48,3 +48,6 @@ docker-data/
 # Keep submodules tracked as gitlinks
 api/.git
 ui/.git
+
+# Local research notes (not for team review)
+docs/research/
