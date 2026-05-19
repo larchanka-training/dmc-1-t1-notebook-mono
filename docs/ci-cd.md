@@ -181,7 +181,83 @@ GitHub Actions автоматически соберёт и опубликует
 
 Для работы Build пайплайна дополнительные секреты не нужны — `GITHUB_TOKEN` создаётся автоматически для каждого запуска и имеет право на публикацию в `ghcr.io`.
 
+Для автоматического обновления submodules в Mono репозитории используется отдельный секрет `MONO_REPO_PAT` — подробнее в разделе [Автоматическое обновление submodules](#автоматическое-обновление-submodules).
+
 Для будущего деплоя на staging/production потребуются дополнительные секреты (TBD).
+
+---
+
+## Автоматическое обновление submodules
+
+Mono репозиторий использует git submodules для отслеживания актуальных версий API и UI. Чтобы pointer submodule всегда указывал на последний коммит `main` — обновление автоматизировано через GitHub Actions.
+
+### Схема работы
+
+```mermaid
+flowchart TD
+    API[Merge PR → main\nAPI репозиторий] --> notifyA[job: notify-mono]
+    UI[Merge PR → main\nUI репозиторий] --> notifyB[job: notify-mono]
+
+    notifyA --> dispatch[repository_dispatch\nмоно репозиторий]
+    notifyB --> dispatch
+
+    dispatch --> workflow[workflow: Update Submodules\nmono репозиторий]
+
+    workflow --> check{Есть изменения\nв submodules?}
+    check -->|Нет| skip[пропустить]
+    check -->|Да| close[закрыть старые\nоткрытые PR]
+    close --> pr[создать новый PR\nchore: update submodules to latest]
+    pr --> merge[команда мержит PR]
+```
+
+### Участвующие файлы
+
+| Файл | Репозиторий | Роль |
+|------|-------------|------|
+| `.github/workflows/ci-cd.yml` | API, UI | Содержит job `notify-mono` — отправляет событие в mono после успешного build на main |
+| `.github/workflows/update-submodules.yml` | Mono | Слушает событие, обновляет submodules, создаёт PR |
+
+### job: notify-mono (API и UI репозитории)
+
+Добавлен в конец существующего `ci-cd.yml`. Запускается только при push в `main` после успешного `build` job:
+
+```yaml
+notify-mono:
+  needs: [build]
+  if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  steps:
+    - uses: peter-evans/repository-dispatch@v3
+      with:
+        token: ${{ secrets.MONO_REPO_PAT }}
+        repository: larchanka-training/dmc-1-t1-notebook-mono
+        event-type: submodule-update
+```
+
+### workflow: Update Submodules (Mono репозиторий)
+
+Файл `.github/workflows/update-submodules.yml`. Алгоритм:
+
+1. Checkout mono репозитория с submodules
+2. `git submodule update --remote --force` — получить последние коммиты из API и UI
+3. Если изменений нет — завершить без действий
+4. Закрыть все открытые PR с заголовком `chore: update submodules to latest` (чтобы не накапливались)
+5. Создать новый PR с обновлёнными submodule pointers
+
+### Секрет MONO_REPO_PAT
+
+Для cross-repo взаимодействия используется Fine-grained Personal Access Token.
+
+| Параметр | Значение |
+|----------|---------|
+| Тип | Fine-grained PAT |
+| Репозитории | api, ui, mono |
+| Permissions | Actions: Read and write, Contents: Read and write, Pull requests: Read and write, Metadata: Read-only |
+
+Секрет добавлен под именем `MONO_REPO_PAT` в Settings → Secrets and variables → Actions каждого из трёх репозиториев.
+
+### Почему не прямой push в main
+
+Mono репозиторий защищён Ruleset с обязательным PR перед мержем. `github-actions[bot]` недоступен как bypass актор в настройках организации, поэтому workflow создаёт PR вместо прямого push.
 
 ---
 
