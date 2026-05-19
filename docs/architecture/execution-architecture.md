@@ -20,7 +20,18 @@
 
 #### WebAssembly (WASM) Runtime: `quickjs-emscripten`
 *   **Движок:** [QuickJS](https://bellard.org/quickjs/), скомпилированный в WebAssembly через Emscripten (пакет `justjake/quickjs-emscripten`).
-*   **Почему:** QuickJS — это легкий и полностью совместимый со стандартами движок JS. Компиляция в WASM обеспечивает максимальную изоляцию ("песочницу"). По умолчанию среда имеет нулевой доступ к API браузера (нет `window`, `document`, `fetch` и т.д.). Мы явно пробрасываем только то, что безопасно и необходимо (например, кастомную реализацию `console.log`).
+*   **Почему:** QuickJS — это легкий и полностью совместимый со стандартами движок JS. Компиляция в WASM обеспечивает максимальную изоляцию ("песочницу"). По умолчанию среда имеет нулевой доступ к API браузера (нет `window`, `document`, `fetch` и т.д.). Мы явно пробрасываем только то, что безопасно и необходимо.
+
+**API, доступные в sandbox (явно пробрасываемые):**
+
+| API | Доступно | Примечание |
+|---|---|---|
+| `console.log` | ✅ | Перехватывается и стримится в UI через `CONSOLE_OUTPUT` |
+| `console.error` | ✅ | Аналогично `console.log` |
+| `console.warn` | ✅ | Аналогично `console.log` |
+| `setTimeout` / `setInterval` | ❌ | Не поддерживается QuickJS WASM в MVP |
+| `fetch` / `XMLHttpRequest` | ❌ | Заблокировано — предотвращает утечку данных |
+| `window` / `document` / `DOM` | ❌ | Недоступно по определению (нет браузерного контекста) |
 
 #### Песочница и многопоточность: Web Worker
 *   **Среда:** Контейнер WASM будет инициализирован внутри выделенного потока Web Worker.
@@ -48,8 +59,34 @@
 
 Взаимодействие между UI (Main Thread) и средой исполнения (Web Worker) использует стандартный браузерный API `postMessage`.
 
-*   **UI -> Worker:** Отправляет запросы на выполнение, содержащие ID ячейки и строку исходного кода.
-*   **Worker -> UI:** Стримит вывод консоли, возвращает финальные результаты вычислений или сообщает об ошибках.
+### Типы сообщений
+
+**UI → Worker:**
+
+| Тип | Поля | Описание |
+|---|---|---|
+| `EXECUTE` | `cellId`, `code` | Запрос на выполнение кода ячейки |
+
+**Worker → UI:**
+
+| Тип | Поля | Описание |
+|---|---|---|
+| `SUCCESS` | `cellId`, `result` | Код выполнен успешно, `result` — строковое представление возвращённого значения |
+| `ERROR` | `cellId`, `error` | Ошибка выполнения (syntax или runtime), `error` — `{ message, stack }` |
+| `TIMEOUT` | `cellId` | Превышен таймаут выполнения |
+| `CONSOLE_OUTPUT` | `cellId`, `method`, `args` | Вывод консоли (`console.log`, `console.error`, `console.warn`). `method` — название метода, `args` — массив аргументов |
+
+**Пример обмена сообщениями:**
+```typescript
+// UI → Worker
+{ type: 'EXECUTE', cellId: 'cell-1', code: 'let x = 10;\nconsole.log(x)' }
+
+// Worker → UI (вывод консоли, приходит до SUCCESS)
+{ type: 'CONSOLE_OUTPUT', cellId: 'cell-1', method: 'log', args: [10] }
+
+// Worker → UI (финальный результат)
+{ type: 'SUCCESS', cellId: 'cell-1', result: 'undefined' }
+```
 
 *Перспектива:* Если протокол сообщений станет сложным, мы можем внедрить RPC-обертку, такую как `Comlink`, поверх Web Worker.
 
@@ -62,7 +99,27 @@
     *   Мы настроим порог таймаута (например, 5 секунд) на каждую ячейку.
     *   Если код превышает это время, QuickJS прервет вычисление, выбросив ошибку. Критическое преимущество здесь в том, что **состояние памяти WASM (переменные из предыдущих ячеек) остается нетронутым.**
 
-## 6. Диаграмма потока исполнения (Execution Flow)
+## 6. Серверное выполнение (для слабых машин)
+
+Для пользователей на слабом железе (< 4 GB RAM) загрузка WASM-бинаря (~1 МБ) и его выполнение в браузере может быть нежелательна. В этом случае предусмотрен опциональный режим серверного выполнения.
+
+**Как это работает:**
+- Engineer #4 реализует endpoint `POST /execute` на бэкенде
+- Бэкенд запускает тот же QuickJS или Node.js для выполнения кода в изолированной среде
+- UI отправляет код на сервер вместо запуска локального Worker
+
+**Кто решает, какой режим использовать:**
+- Для MVP — ручное переключение пользователем (настройка в UI)
+- В будущем — автоматическое определение по `navigator.deviceMemory`
+
+**Ограничения серверного режима:**
+- Нет персистентности состояния между ячейками (каждый запрос изолирован)
+- Требует сетевого подключения
+- Выше latency по сравнению с локальным выполнением
+
+> **Для MVP серверное выполнение — опциональная функция.** Основной режим — браузерный QuickJS+WASM.
+
+## 7. Диаграмма потока исполнения (Execution Flow)
 
 ```mermaid
 sequenceDiagram
@@ -78,14 +135,16 @@ sequenceDiagram
     U->>W: postMessage({ type: 'EXECUTE', cellId: '1', code: 'let x = 10;' })
     
     W->>Q: Start Timer (5s)
-    W->>Q: vm.evalCode('let x = 10;')
-    
-    alt Успех
+    W->>Q: vm.evalCode('let x = 10; console.log(x)')
+
+    alt Успех (с выводом консоли)
+        Q-->>W: console.log intercepted
+        W-->>U: postMessage({ type: 'CONSOLE_OUTPUT', cellId: '1', method: 'log', args: [10] })
         Q-->>W: Result (undefined)
         W-->>U: postMessage({ type: 'SUCCESS', cellId: '1', result: 'undefined' })
     else Ошибка Syntax/Runtime
         Q-->>W: Throw Error
-        W-->>U: postMessage({ type: 'ERROR', cellId: '1', error: 'SyntaxError...' })
+        W-->>U: postMessage({ type: 'ERROR', cellId: '1', error: { message, stack } })
     else Таймаут (Бесконечный цикл)
         Q-->>W: Interrupt Triggered
         W-->>U: postMessage({ type: 'TIMEOUT', cellId: '1' })
