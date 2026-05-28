@@ -57,7 +57,9 @@
 
 ## 4. Модель коммуникации
 
-Взаимодействие между UI (Main Thread) и средой исполнения (Web Worker) использует стандартный браузерный API `postMessage`.
+Взаимодействие между UI (Main Thread) и средой исполнения (Web Worker) — **асинхронное**: UI отправляет запрос через `postMessage` и ожидает ответного сообщения от Worker (реализуется через `Promise` + обработчик `onmessage`). Используется стандартный браузерный API `postMessage`.
+
+> Файл документа: `docs/architecture/execution-architecture.md` в mono-репозитории.
 
 ### Типы сообщений
 
