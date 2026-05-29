@@ -75,6 +75,28 @@ docker compose down
 
 ---
 
+## How `docker compose up` Handles Everything
+
+You don't need to manually install dependencies or start dev servers — it's all wired into the Docker configuration.
+
+**API** (`api/Dockerfile`):
+- Dependencies are installed during image build: `pip install -r requirements.txt`
+- `docker-compose.yaml` overrides the default command to run FastAPI in dev mode with hot-reload:
+  ```
+  fastapi dev app/main.py --host 0.0.0.0 --port 8000
+  ```
+- Source code is mounted as a volume (`./api:/app`), so local file changes are reflected immediately without rebuilding.
+
+**Frontend** (`docker-compose.yaml`, `command:`):
+- The compose file uses the `builder` stage of `ui/Dockerfile` and sets the startup command to:
+  ```
+  npm ci --prefer-offline && npm run dev -- --host
+  ```
+- Node modules are stored in a named Docker volume (`ui-node-modules`) so they persist between restarts.
+- Source code is mounted as a volume (`./ui:/home/app`), enabling hot-reload via Vite.
+
+---
+
 ## Available Addresses After Startup
 
 | Service | URL |
