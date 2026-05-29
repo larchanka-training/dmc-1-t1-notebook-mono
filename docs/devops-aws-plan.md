@@ -1,233 +1,241 @@
 # DevOps AWS — план и принятые решения
 
 Документ фиксирует архитектурные решения по развёртыванию проекта на Amazon Web Services.
-Принят в ходе технического интервью (Sprint DevOps, май 2026).
+Обновлён в Sprint 2 (Tech Lead, май 2026) в рамках issue #76.
+
+---
+
+## Статус реализации
+
+| Компонент | Статус |
+|---|---|
+| Terraform state: S3 bucket | ✅ Создан (`dmc-1-t1-notebook-terraform-state`, eu-north-1, versioning включён) |
+| Terraform state: DynamoDB lock | ✅ Создан (`dmc-1-t1-notebook-terraform-lock`) |
+| OIDC Identity Provider (GitHub Actions) | ✅ Создан организаторами (`token.actions.githubusercontent.com`) |
+| IAM Role `github-actions` | ✅ Создана организаторами (`arn:aws:iam::867633231218:role/github-actions`) |
+| Terraform код (`mono/infra/`) | ✅ Bootstrap структура создана |
+| ECS кластеры dev + prod | ⏳ Terraform Sub-task 2+3 |
+| RDS PostgreSQL dev + prod | ⏳ Terraform Sub-task 3 |
+| GitHub Actions deploy | ⏳ Sub-tasks 4-6 |
+| Preview per PR (UI-only, S3+CloudFront) | 🔜 Последняя очередь |
 
 ---
 
 ## 1. Платформа: ECS Fargate
 
-**Решение:** Запускать контейнеры на Amazon ECS с типом запуска Fargate.
+**Решение:** Контейнеры запускаются на Amazon ECS с типом запуска Fargate.
 
-**Почему:** Оптимальный баланс между управляемостью и гибкостью для проекта на начальной стадии. EKS (Kubernetes) избыточен — требует отдельного человека для поддержки кластера. App Runner слишком ограничен для Blue-Green деплоев. ECS Fargate нативно поддерживает CodeDeploy Blue-Green и интегрируется с CloudWatch без изменений в коде.
+**Стратегия деплоя:** Rolling Update (не Blue-Green — явно ограничено в рамках курса).
+
+- `deployment_minimum_healthy_percent = 50`
+- `deployment_maximum_percent = 200`
+
+**Почему Fargate:** Serverless-контейнеры — не нужно управлять EC2 инстансами. Платим только за время работы контейнера.
 
 ---
 
-## 2. Container Registry: Amazon ECR
+## 2. Container Registry: GHCR
 
-**Решение:** Переключить CI/CD пайплайн с GHCR на Amazon ECR для production-образов. GHCR остаётся опцией для локальной разработки.
+**Решение:** Образы остаются в GitHub Container Registry (GHCR). Переезд на Amazon ECR — отдельная задача будущего спринта.
 
-**Почему:** IAM-роль ECS Task автоматически имеет доступ к ECR без хранения дополнительных секретов. CodeDeploy Blue-Green требует доступа к образу в момент деплоя — с GHCR пришлось бы пробрасывать токен в Task Definition, который протухает каждые 24 часа.
+**Текущие image names:**
+- API: `ghcr.io/larchanka-training/dmc-1-t1-notebook-api:latest`
+- UI: `ghcr.io/larchanka-training/dmc-1-t1-notebook-ui:latest`
 
-**Изменения в CI** (`ci-cd.yml` в обоих репозиториях):
+**Важно для ECS:** Task Definition должен содержать `repositoryCredentials` — ARN секрета в Secrets Manager с GitHub PAT (`read:packages`) в формате `{"username":"...", "password":"..."}`.
 
-```yaml
-# было
-REGISTRY: ghcr.io
-IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/dmc-1-t1-notebook-api
+---
 
-# станет
-REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-IMAGE_NAME: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/dmc-1-t1-notebook-api
+## 3. Окружения
+
+Два окружения, каждое со своим ECS Cluster, ECS Services и RDS инстансом:
+
+| Окружение | Триггер деплоя | Назначение |
+|---|---|---|
+| `dev` | Push в `main` (автоматически) | Проверка что деплой работает |
+| `prod` | `workflow_dispatch` или тег `v*` (вручную) | Production |
+
+---
+
+## 4. Инфраструктура как код: Terraform
+
+**Расположение:** `dmc-1-t1-notebook-mono/infra/`
+
+**Структура:**
+```
+infra/
+  modules/
+    environment/      # переиспользуемый модуль (ECS, RDS, Secrets Manager)
+  envs/
+    dev/              # вызывает modules/environment
+    prod/
+  shared/             # VPC, subnets, ALB (общие для dev и prod)
 ```
 
----
-
-## 3. Blue-Green Deployment
-
-**Решение:** AWS CodeDeploy + Application Load Balancer. Два target group (blue/green), трафик переключается через ALB.
-
-### 3.1 Стратегия переключения трафика
-
-**Решение:** `ECSCanary10Percent5Minutes` для production. Стратегия конфигурируется через переменную окружения, чтобы разные среды могли использовать разные подходы.
-
-| Среда | Стратегия | Причина |
-|---|---|---|
-| `prod` | `ECSCanary10Percent5Minutes` | 10% трафика на новую версию, 5 минут наблюдения, затем 100% |
-| `uat` | `AllAtOnce` | QA-команда должна сразу тестировать полную версию |
-
-**Почему Canary для prod:** При ошибке в новой версии она затронет только 10% пользователей, а не всех. `AllAtOnce` убирает весь смысл Blue-Green. `Linear` слишком медленный для небольшой команды.
-
-### 3.2 Автоматический откат
-
-**Решение:** CloudWatch Alarm триггерит автоматический откат через CodeDeploy при превышении порога ошибок.
-
-**Базовые алармы:**
-
-| Аларм | Метрика | Порог |
-|---|---|---|
-| Деплой сломан | HTTP 5xx rate | > 5% за 5 минут |
-| API недоступен | ECS HealthCheck failures | > 2 подряд |
-| БД перегружена | RDS CPU / DB connections | > 80% |
-| Память контейнера | ECS MemoryUtilization | > 85% |
-
-**Почему автоматически, не вручную:** Ручной откат требует дежурного, который мониторит каждый деплой. Для учебного проекта это нереально. Автоматика срабатывает быстрее и без участия человека.
-
----
-
-## 4. Feature Flags: AWS AppConfig
-
-**Решение:** Использовать AWS AppConfig (часть Systems Manager) для управления флагами функциональности.
-
-**Почему AppConfig, не Unleash:** Unleash требует поддерживать ещё один сервис и его базу данных. AppConfig — managed-сервис, интегрируется с IAM, не требует отдельной инфраструктуры, стоит копейки при малом трафике. Поддерживает targeting по атрибутам пользователя (в т.ч. `userId` и/или `tenantId`).
-
-### 4.1 Интеграция с кодом
-
-**Решение:** API читает флаги из AppConfig, кэширует (TTL 45 секунд, рекомендация AppConfig Agent), отдаёт UI через отдельный endpoint.
-
-**Endpoint:** `GET /api/v1/feature-flags`
-
-**Формат ответа:**
-```json
-{
-  "js-execution-v2": true,
-  "markdown-preview": false
+**Backend (S3 + DynamoDB):**
+```hcl
+terraform {
+  backend "s3" {
+    bucket         = "dmc-1-t1-notebook-terraform-state"
+    key            = "dev/terraform.tfstate"   # или prod/
+    region         = "eu-north-1"
+    dynamodb_table = "dmc-1-t1-notebook-terraform-lock"
+    encrypt        = true
+  }
 }
 ```
 
-**Почему API + UI, не только API:** Для крупных фич (новый тип ячейки, новый режим) правильнее скрывать их на уровне UI, чем ждать ошибку 404 от API. Пользователь не должен видеть кнопки, которые не работают.
+---
+
+## 5. Сетевая инфраструктура (`infra/shared/`)
+
+- `aws_vpc` — CIDR `10.0.0.0/16`
+- 2 public subnets (eu-north-1a, eu-north-1b) — для ALB
+- 2 private subnets — для ECS Tasks и RDS
+- Internet Gateway + Route Tables
+- Security Groups: ALB (80 inbound), ECS (от ALB), RDS (от ECS)
+- Application Load Balancer (internet-facing, port 80)
+- Path-based routing: `/api/v1/*` → API Target Group, `/*` → UI Target Group
+
+**Доступ:** ALB DNS имя (`xxx.eu-north-1.elb.amazonaws.com`) — без домена и Route53.
 
 ---
 
-## 5. Observability: OTEL + Logs + Metrics
+## 6. Модуль окружения (`infra/modules/environment/`)
 
-### 5.1 ADOT Collector как sidecar
+Параметризован через `var.environment` (`dev` / `prod`).
 
-**Решение:** AWS Distro for OpenTelemetry (ADOT) Collector запускается как sidecar-контейнер в том же ECS Task, что и API.
+**ECS:**
+- `aws_ecs_cluster`
+- `aws_ecs_task_definition` для API (CPU 256, Memory 512) и UI (CPU 256, Memory 256)
+- `aws_ecs_service` для API и UI с Rolling Update
+- `aws_iam_role` для ECS Task Execution
 
-**Почему без изменений в коде:** API уже использует стандартный OTLP gRPC (`telemetry.py`). ADOT принимает тот же протокол. Достаточно сменить одну env-переменную:
+**База данных:**
+- `aws_db_instance` — PostgreSQL 15, `db.t3.micro`, Single-AZ, 20GB gp2, `skip_final_snapshot = true`
+- `aws_db_subnet_group` — private subnets
 
-```bash
-# локально (Aspire Dashboard)
-OTEL_ENDPOINT=http://aspire-dashboard:18889
+**Секреты:**
+- `aws_secretsmanager_secret` — DB password (генерируется через `random_password`)
+- `aws_secretsmanager_secret` — GitHub PAT для pull из GHCR
 
-# AWS (ADOT sidecar)
-OTEL_ENDPOINT=http://localhost:4317
-```
-
-ADOT пересылает данные в CloudWatch Logs, CloudWatch Metrics и AWS X-Ray.
-
-### 5.2 Алерты
-
-**Решение:** CloudWatch Alarms → SNS → Email команды.
-
-**Почему Email:** Slack/Discord-среда для командной работы ещё не настроена. Email — минимальная рабочая конфигурация. При появлении корпоративного мессенджера SNS легко перенастроить на Webhook.
+**Логи:**
+- `aws_cloudwatch_log_group` для API и UI
 
 ---
 
-## 6. База данных: миграции
+## 7. GitHub Actions — CI/CD Pipeline
 
-### 6.1 Инструмент: Alembic
+### Аутентификация в AWS: OIDC
 
-**Решение:** Добавить Alembic в `requirements.txt` API для управления миграциями схемы PostgreSQL.
+**Решение:** GitHub Actions использует OIDC (OpenID Connect) для получения временных AWS credentials. Долгоживущих Access Keys нет.
 
-**Почему Alembic:** Стандарт де-факто для Python + PostgreSQL. Версионированные файлы миграций, поддержка `upgrade`/`downgrade`, легко запускается как отдельный шаг в пайплайне.
+**Уже создано организаторами:**
+- OIDC Identity Provider: `arn:aws:iam::867633231218:oidc-provider/token.actions.githubusercontent.com`
+- IAM Role: `arn:aws:iam::867633231218:role/github-actions`
+  - Trust policy: `repo:larchanka-training/*` — покрывает все репозитории команды
+  - Audience: `sts.amazonaws.com`
 
-### 6.2 Запуск миграций: отдельный ECS Task
+**GitHub Secrets в каждом репозитории:**
+- `AWS_ROLE_ARN` = `arn:aws:iam::867633231218:role/github-actions`
+- `AWS_REGION` = `eu-north-1`
 
-**Решение:** Миграции запускаются как отдельный ECS Task (`alembic upgrade head`) в CI/CD пайплайне **до** деплоя нового сервиса.
+**Конфигурация в workflow:**
+```yaml
+permissions:
+  id-token: write   # обязательно для OIDC
+  contents: read
 
-**Почему не внутри контейнера при старте:** При Blue-Green одновременно живут два контейнера API (blue + green). Если каждый запускает миграцию при старте — возникает race condition, который может повредить данные. Отдельный Task гарантирует выполнение ровно один раз.
-
-### 6.3 Правила написания миграций: Expand-Contract
-
-**Решение:** Обязательный паттерн для всех миграций, которые затрагивают существующие данные.
-
-**Запрещено в одном деплое с кодом:**
-
-```sql
--- Переименование — сломает старый код (Blue-версия читает старое имя)
-ALTER TABLE users RENAME COLUMN old_name TO new_name;
-
--- NOT NULL без default — сломает INSERT из старого кода
-ALTER TABLE cells ADD COLUMN type VARCHAR NOT NULL;
-
--- DROP — сломает всё немедленно
-ALTER TABLE users DROP COLUMN legacy_field;
+steps:
+  - uses: aws-actions/configure-aws-credentials@v4
+    with:
+      role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+      aws-region: ${{ secrets.AWS_REGION }}
 ```
 
-**Правильно — три шага в трёх отдельных деплоях:**
+### Деплой на dev (автоматический)
 
-1. **Expand:** добавить новую колонку (nullable или с default) — старый код не замечает
-2. **Migrate:** новый код пишет в обе колонки, backfill существующих данных
-3. **Contract:** удалить старую колонку, когда старого кода нет в production
+Job `deploy-dev` добавляется в существующий `ci-cd.yml` API и UI репозиториев:
 
-**Почему это критично:** Blue-Green означает, что старая и новая версия кода работают с одной базой одновременно во время переключения трафика. Нарушение этих правил гарантированно ломает production в момент деплоя.
+```yaml
+deploy-dev:
+  needs: [build]
+  if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  steps:
+    - uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ secrets.AWS_REGION }}
+    - run: |
+        aws ecs update-service \
+          --cluster dmc-1-t1-notebook-dev \
+          --service dmc-1-t1-notebook-api-dev \
+          --force-new-deployment
+```
+
+### Деплой на prod (ручной)
+
+Отдельный workflow `deploy-prod.yml` в mono репо. Триггер: `workflow_dispatch` (приоритет) или тег `v*`.
+
+### Оптимизация кэша сборок
+
+В `docker/build-push-action@v7` обоих репозиториев:
+```yaml
+cache-from: type=gha
+cache-to: type=gha,mode=max
+```
+
+Ускоряет повторные сборки на 60–80%, бесплатно через GitHub Actions cache.
 
 ---
 
-## 7. Исправления в Dockerfile (блокеры для production)
+## 8. Полный CI/CD pipeline (push в `main`)
 
-### 7.1 API: `fastapi dev` → `fastapi run`
-
-**Файл:** `dmc-1-t1-notebook-api/Dockerfile`
-
-```dockerfile
-# было (dev-сервер с hot reload — не для production)
-CMD ["fastapi", "dev", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
-
-# должно быть
-CMD ["fastapi", "run", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
 ```
-
-**Локальная разработка не пострадает:** `docker-compose.yaml` уже переопределяет CMD своим `command: fastapi dev ...`, поэтому hot reload в Mono репозитории продолжит работать.
-
-### 7.2 UI: multi-stage build вместо dev-сервера
-
-**Файл:** `dmc-1-t1-notebook-ui/Dockerfile`
-
-```dockerfile
-# было (Vite dev-сервер — не для production)
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
-
-# должно быть — multi-stage build
-FROM node:20-slim AS builder
-WORKDIR /home/app
-COPY package*.json ./
-RUN npm ci --prefer-offline
-COPY . .
-RUN npm run build
-
-FROM nginx:alpine
-COPY --from=builder /home/app/dist /usr/share/nginx/html
-EXPOSE 80
+push → lint + test
+           ↓
+       build image → push to GHCR
+           ↓
+       OIDC: assume role/github-actions (временные credentials)
+           ↓
+       deploy-dev: aws ecs update-service --force-new-deployment
+           ↓
+       ECS Rolling Update (старый контейнер жив пока новый не healthy)
 ```
-
-**Локальная разработка не пострадает:** docker-compose переопределяет CMD через `command:` и монтирует volume для hot reload.
 
 ---
 
-## 8. Секреты: AWS Secrets Manager
+## 9. Preview per PR (отложено)
 
-**Решение:** Все секреты (DB password, OAuth Client ID/Secret) хранятся в AWS Secrets Manager. ECS Task Definition ссылается на ARN секрета — ECS сам инжектирует значение в env var контейнера.
+Реализовать в последнюю очередь после стабилизации dev/prod деплоя.
 
-**Почему не plain env vars:** Секреты в env vars видны в консоли AWS, в логах и в коде CI. Secrets Manager решает это: значение никогда не покидает защищённое хранилище в открытом виде. Ротация credentials при компрометации происходит без передеплоя.
+**Подход:** UI-only preview через S3 + CloudFront.
 
-**Что переносится в Secrets Manager:**
-
-| Переменная | Тип |
-|---|---|
-| `POSTGRES_PASSWORD` | Secret |
-| `OAUTH_CLIENT_SECRET` | Secret |
-| `OAUTH_CLIENT_ID` | Secret |
-| `DATABASE_URL` | Secret (содержит пароль) |
-
-Нечувствительные переменные (`APP_ENV`, `API_PREFIX`, `OTEL_SERVICE_NAME` и т.д.) остаются обычными env vars в Task Definition.
+- Workflow на `pull_request` (opened, synchronize)
+- `npm run build` → `aws s3 sync dist/ s3://dmc-1-t1-notebook-previews/pr-<number>/`
+- GitHub Actions оставляет комментарий в PR с URL
+- При закрытии PR: `aws s3 rm` папки
 
 ---
 
-## Итоговый CI/CD пайплайн (при мерже в `main`)
+## 10. Dockerfile (уже исправлено)
 
-```
-PR → lint + test
-        ↓
-merge → build image → push to ECR
-        ↓
-Run Migration ECS Task (alembic upgrade head)
-        ↓
-CodeDeploy: Blue-Green (ECSCanary10Percent5Minutes)
-  10% трафика → новая версия (5 мин наблюдение)
-        ↓
-CloudWatch Alarm OK? → 100% трафика на новую версию
-CloudWatch Alarm FAIL? → автоматический откат на старую версию
-```
+Оба Dockerfile уже production-ready:
+
+- **API:** использует `fastapi run` (не `fastapi dev`)
+- **UI:** multi-stage build (builder → nginx:alpine)
+
+`docker-compose.yaml` в mono репо переопределяет CMD для локальной разработки — hot reload не пострадал.
+
+---
+
+## Что НЕ в скоупе текущего спринта
+
+- ~~Blue-Green Deployment~~ — явно ограничено организаторами курса
+- ~~Access Keys~~ — заменены на OIDC
+- ADOT sidecar + AWS X-Ray — отдельная задача
+- AppConfig Feature Flags — отдельная задача
+- Alembic миграции — после стабилизации деплоя
+- ECR вместо GHCR — отдельный PR
+- CloudWatch Alarms + SNS — после стабилизации деплоя
+- Route53 + домен — не нужно, достаточно ALB DNS

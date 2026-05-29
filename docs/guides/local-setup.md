@@ -1,34 +1,34 @@
-# Local Setup Guide
+# Руководство по локальной настройке
 
-## Why All This?
+## Зачем всё это?
 
-### Docker — consistent environment for the entire team
+### Docker — единая среда для всей команды
 
-All services run in containers, which guarantees identical configuration for all developers and eliminates "it works on my machine" problems.
+Все сервисы работают в контейнерах, что гарантирует одинаковую конфигурацию для всех разработчиков и устраняет проблему "у меня работает".
 
-### Local domains (notebook.com and subdomains)
+### Локальные домены (notebook.com и поддомены)
 
-Used for:
-- proper cookie handling (especially **SameSite**, secure cookies),
-- correct OAuth / redirect-URL functionality,
-- reverse-proxy setup via virtual hosts,
-- production infrastructure emulation.
+Используются для:
+- корректной работы cookie (особенно **SameSite**, secure cookies),
+- правильной работы OAuth / redirect URL,
+- настройки reverse-proxy через virtual hosts,
+- эмуляции production-инфраструктуры.
 
-### HTTPS even locally
+### HTTPS даже локально
 
-A self-signed certificate enables:
+Self-signed сертификат обеспечивает:
 - secure cookies,
 - service workers,
-- APIs that require https,
-- correct auth process functionality.
+- API, требующие https,
+- корректную работу процесса аутентификации.
 
-The browser will warn that the certificate is untrusted — this is normal for dev. Just click **Advanced → Continue anyway**.
+Браузер предупредит, что сертификат недоверенный — это нормально для dev. Просто нажмите **Дополнительно → Перейти на сайт**.
 
 ---
 
-## Setting Up Local Domains
+## Настройка локальных доменов
 
-To access `notebook.com`, `api.notebook.com`, and `pgadmin.notebook.com` locally, add these entries to your hosts file:
+Чтобы открывать `notebook.com`, `api.notebook.com` и `pgadmin.notebook.com` локально, добавьте записи в hosts-файл:
 
 ```
 127.0.0.1 notebook.com
@@ -36,7 +36,7 @@ To access `notebook.com`, `api.notebook.com`, and `pgadmin.notebook.com` locally
 127.0.0.1 pgadmin.notebook.com
 ```
 
-### How to edit `hosts`
+### Как редактировать `hosts`
 
 **macOS / Linux:**
 
@@ -46,109 +46,109 @@ sudo nano /etc/hosts
 
 **Windows:**
 
-Open Notepad as Administrator → open file:
+Открыть Notepad от имени администратора → открыть файл:
 `C:\Windows\System32\drivers\etc\hosts`
 
-After making changes, flush your DNS cache (e.g., `ipconfig /flushdns` on Windows).
+После изменений сбросьте DNS-кеш (например, `ipconfig /flushdns` на Windows).
 
 ---
 
-## Running the Project Locally
+## Запуск проекта локально
 
-### Step 0. Prepare .env
+### Шаг 0. Подготовить .env
 
 ```bash
 cp .env.example .env
 ```
 
-Open `.env` and replace all values marked `[REQUIRED]`.
-
-**macOS / Linux:**
+Открыть `.env` и заполнить все значения, помеченные `[REQUIRED]`.
 
 ```bash
-chmod +x start-services.sh
-./start-services.sh
+docker compose up
 ```
 
-**Windows (PowerShell):**
-
-```powershell
-.\start-services.ps1
-```
-
-### Stopping Services
+### Остановка сервисов
 
 ```
-docker-compose down
+docker compose down
 ```
 
 ---
 
-## What `start-services.sh` Does
+## Как `docker compose up` делает всё сам
 
-The script automates the entire startup process: bringing up Docker containers, launching the backend and frontend in dev mode, and preparing the environment.
+Устанавливать зависимости и запускать dev-серверы вручную не нужно — всё прописано в Docker-конфигурации.
 
-1. **Stops execution on any error** — prevents incorrect startup.
-2. **Runs docker-compose** — starts all services from `docker-compose.yml`: database, API container, frontend container, pgAdmin, proxy, etc.
-3. **Waits** — gives containers time to fully start up.
-4. **Launches the backend inside its container** — finds the API container, installs Python dependencies (`pip install`), starts FastAPI in development mode.
-5. **Launches the frontend inside its container** — finds the frontend container, installs npm dependencies, starts the dev server.
-6. **Displays a success message** — frontend and backend are ready to use.
+**API** (`api/Dockerfile`):
+- Зависимости устанавливаются при сборке образа: `pip install -r requirements.txt`
+- `docker-compose.yaml` переопределяет стандартную команду на запуск FastAPI в dev-режиме с hot-reload:
+  ```
+  fastapi dev app/main.py --host 0.0.0.0 --port 8000
+  ```
+- Исходный код монтируется как volume (`./api:/app`), поэтому локальные изменения применяются сразу без пересборки образа.
+
+**Frontend** (`docker-compose.yaml`, `command:`):
+- Compose-файл использует stage `builder` из `ui/Dockerfile` и задаёт команду запуска:
+  ```
+  npm ci --prefer-offline && npm run dev -- --host
+  ```
+- Node modules хранятся в named Docker volume (`ui-node-modules`) и сохраняются между перезапусками.
+- Исходный код монтируется как volume (`./ui:/home/app`), что обеспечивает hot-reload через Vite.
 
 ---
 
-## Available Addresses After Startup
+## Адреса после запуска
 
-| Service | URL |
-|---------|-----|
+| Сервис | URL |
+|--------|-----|
 | Frontend | [https://notebook.com](https://notebook.com/) |
 | API | [https://api.notebook.com](https://api.notebook.com/) |
 | pgAdmin | [https://pgadmin.notebook.com](https://pgadmin.notebook.com/) |
 
-A certificate warning may appear on first access — this is expected.
+При первом открытии браузер может показать предупреждение о сертификате — это ожидаемо.
 
 ---
 
-## Self-Signed Certificate Warning
+## Предупреждение о self-signed сертификате
 
-Your browser will show an untrusted connection message. Click **Advanced → Continue to site**.
+Браузер покажет сообщение о ненадёжном соединении. Нажмите **Дополнительно → Перейти на сайт**.
 
-This is typical for local development. If you want full dev-https without warnings, use `mkcert` to generate a trusted local certificate.
-
----
-
-## Useful Commands
-
-| Command | Description |
-|---------|-------------|
-| `docker ps` | View running containers |
-| `docker compose logs -f` | Stream service logs |
-| `docker compose down` | Stop all services |
-| `docker compose up -d --build` | Rebuild and restart |
+Это типично для локальной разработки. Чтобы убрать предупреждения, используйте `mkcert` для генерации доверенного локального сертификата.
 
 ---
 
-## Troubleshooting
+## Полезные команды
 
-### Site won't open
+| Команда | Описание |
+|---------|----------|
+| `docker ps` | Показать запущенные контейнеры |
+| `docker compose logs -f` | Стримить логи сервисов |
+| `docker compose down` | Остановить все сервисы |
+| `docker compose up -d --build` | Пересобрать и перезапустить |
 
-Check:
-- your hosts file,
-- that containers are running (`docker ps`),
-- logs (`docker compose logs`).
+---
 
-### Port already in use
+## Устранение проблем
 
-Find what's using it:
+### Сайт не открывается
+
+Проверьте:
+- hosts-файл,
+- что контейнеры запущены (`docker ps`),
+- логи (`docker compose logs`).
+
+### Порт уже занят
+
+Найдите, что его использует:
 - macOS/Linux: `lsof -i :80` / `lsof -i :443`
 - Windows: `netstat -a -b`
 
-### Certificate warning
+### Предупреждение о сертификате
 
-This is normal. Click **Continue**. To remove warnings, use `mkcert`.
+Это нормально. Нажмите **Продолжить**. Чтобы убрать предупреждения, используйте `mkcert`.
 
-### Frontend or backend didn't start
+### Frontend или backend не запустились
 
-Check:
-- that the container was found (name matches expected),
-- that dependencies installed correctly.
+Проверьте:
+- что контейнер найден (имя совпадает с ожидаемым),
+- что зависимости установились корректно.
