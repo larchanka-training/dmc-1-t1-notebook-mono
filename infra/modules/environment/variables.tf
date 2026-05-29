@@ -37,3 +37,23 @@ variable "ui_target_group_arn" {
   description = "ALB target group ARN for UI"
   default     = ""
 }
+
+variable "alb_security_group_id" {
+  description = "ALB security group ID"
+  default     = ""
+}
+
+variable "ecs_security_group_id" {
+  description = "ECS tasks security group ID"
+  default     = ""
+}
+
+variable "rds_security_group_id" {
+  description = "RDS security group ID"
+  default     = ""
+}
+
+variable "alb_dns_name" {
+  description = "ALB DNS name"
+  default     = ""
+}
