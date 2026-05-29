@@ -63,37 +63,15 @@ cp .env.example .env
 
 Open `.env` and replace all values marked `[REQUIRED]`.
 
-**macOS / Linux:**
-
 ```bash
-chmod +x start-services.sh
-./start-services.sh
-```
-
-**Windows (PowerShell):**
-
-```powershell
-.\start-services.ps1
+docker compose up
 ```
 
 ### Stopping Services
 
 ```
-docker-compose down
+docker compose down
 ```
-
----
-
-## What `start-services.sh` Does
-
-The script automates the entire startup process: bringing up Docker containers, launching the backend and frontend in dev mode, and preparing the environment.
-
-1. **Stops execution on any error** — prevents incorrect startup.
-2. **Runs docker-compose** — starts all services from `docker-compose.yml`: database, API container, frontend container, pgAdmin, proxy, etc.
-3. **Waits** — gives containers time to fully start up.
-4. **Launches the backend inside its container** — finds the API container, installs Python dependencies (`pip install`), starts FastAPI in development mode.
-5. **Launches the frontend inside its container** — finds the frontend container, installs npm dependencies, starts the dev server.
-6. **Displays a success message** — frontend and backend are ready to use.
 
 ---
 
