@@ -11,8 +11,7 @@
 |---|---|
 | Terraform state: S3 bucket | ✅ Создан (`dmc-1-t1-notebook-terraform-state`, eu-north-1, versioning включён) |
 | Terraform state: DynamoDB lock | ✅ Создан (`dmc-1-t1-notebook-terraform-lock`) |
-| OIDC Identity Provider (GitHub Actions) | ✅ Создан организаторами (`token.actions.githubusercontent.com`) |
-| IAM Role `github-actions` | ✅ Создана организаторами (`arn:aws:iam::867633231218:role/github-actions`) |
+| AWS credentials (GitHub Actions) | ✅ Org-level secrets настроены организаторами (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) |
 | Terraform код (`mono/infra/`) | ✅ Bootstrap структура создана |
 | ECS кластеры dev + prod | ⏳ Terraform Sub-task 2+3 |
 | RDS PostgreSQL dev + prod | ⏳ Terraform Sub-task 3 |
@@ -126,32 +125,31 @@ terraform {
 
 ## 7. GitHub Actions — CI/CD Pipeline
 
-### Аутентификация в AWS: OIDC
+### Аутентификация в AWS: Organization Secrets
 
-**Решение:** GitHub Actions использует OIDC (OpenID Connect) для получения временных AWS credentials. Долгоживущих Access Keys нет.
+**Решение:** Использовать org-level Access Keys, которые организаторы курса уже настроили для всей организации `larchanka-training`. Секреты автоматически доступны во всех репозиториях — дополнительной настройки не требуется.
 
-**Уже создано организаторами:**
-- OIDC Identity Provider: `arn:aws:iam::867633231218:oidc-provider/token.actions.githubusercontent.com`
-- IAM Role: `arn:aws:iam::867633231218:role/github-actions`
-  - Trust policy: `repo:larchanka-training/*` — покрывает все репозитории команды
-  - Audience: `sts.amazonaws.com`
-
-**GitHub Secrets в каждом репозитории:**
-- `AWS_ROLE_ARN` = `arn:aws:iam::867633231218:role/github-actions`
-- `AWS_REGION` = `eu-north-1`
+**Org-level secrets (уже настроены организаторами):**
+- `AWS_ACCESS_KEY_ID` — доступен во всех репо организации
+- `AWS_SECRET_ACCESS_KEY` — доступен во всех репо организации
 
 **Конфигурация в workflow:**
 ```yaml
-permissions:
-  id-token: write   # обязательно для OIDC
-  contents: read
-
-steps:
-  - uses: aws-actions/configure-aws-credentials@v4
-    with:
-      role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-      aws-region: ${{ secrets.AWS_REGION }}
+- uses: aws-actions/configure-aws-credentials@v4
+  with:
+    aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    aws-region: eu-north-1
 ```
+
+Регион хардкодится в workflow — он единственный и не меняется.
+
+**Что покрывают эти credentials:**
+- `aws ecs update-service` — деплой на ECS
+- `terraform apply` — создание инфраструктуры
+- `aws s3 sync` — будущие preview деплои
+
+Docker образы пушатся в GHCR через `GITHUB_TOKEN` — AWS credentials для этого не нужны.
 
 ### Деплой на dev (автоматический)
 
@@ -232,7 +230,6 @@ push → lint + test
 ## Что НЕ в скоупе текущего спринта
 
 - ~~Blue-Green Deployment~~ — явно ограничено организаторами курса
-- ~~Access Keys~~ — заменены на OIDC
 - ADOT sidecar + AWS X-Ray — отдельная задача
 - AppConfig Feature Flags — отдельная задача
 - Alembic миграции — после стабилизации деплоя
