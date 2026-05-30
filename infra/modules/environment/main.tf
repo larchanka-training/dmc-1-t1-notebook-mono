@@ -117,36 +117,64 @@ resource "aws_ecs_task_definition" "api" {
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = 256
-  memory                   = 512
+  memory                   = 1024
   execution_role_arn       = aws_iam_role.ecs_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
 
-  container_definitions = jsonencode([{
-    name  = "api"
-    image = "ghcr.io/larchanka-training/dmc-1-t1-notebook-api:latest"
+  container_definitions = jsonencode([
+    {
+      name  = "api"
+      image = "ghcr.io/larchanka-training/dmc-1-t1-notebook-api:latest"
 
-    repositoryCredentials = {
-      credentialsParameter = aws_secretsmanager_secret.ghcr.arn
-    }
+      repositoryCredentials = {
+        credentialsParameter = aws_secretsmanager_secret.ghcr.arn
+      }
 
-    secrets = [{
-      name      = "DATABASE_URL"
-      valueFrom = aws_secretsmanager_secret.db_password.arn
-    }]
+      secrets = [{
+        name      = "DATABASE_URL"
+        valueFrom = aws_secretsmanager_secret.db_password.arn
+      }]
 
-    portMappings = [{
-      containerPort = 8000
-      protocol      = "tcp"
-    }]
+      environment = [
+        { name = "OTEL_ENABLED", value = "true" },
+        { name = "OTEL_ENDPOINT", value = "http://localhost:4317" },
+        { name = "OTEL_SERVICE_NAME", value = "${local.name_prefix}-api" },
+      ]
 
-    logConfiguration = {
-      logDriver = "awslogs"
-      options = {
-        awslogs-group         = aws_cloudwatch_log_group.api.name
-        awslogs-region        = var.region
-        awslogs-stream-prefix = "ecs"
+      portMappings = [{
+        containerPort = 8000
+        protocol      = "tcp"
+      }]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.api.name
+          awslogs-region        = var.region
+          awslogs-stream-prefix = "ecs"
+        }
+      }
+    },
+    {
+      name      = "adot-collector"
+      image     = "public.ecr.aws/aws-observability/aws-otel-collector:latest"
+      essential = false
+      command   = ["--config=ssm:/${local.name_prefix}/adot-config"]
+
+      environment = [
+        { name = "AWS_DEFAULT_REGION", value = var.region },
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.adot.name
+          awslogs-region        = var.region
+          awslogs-stream-prefix = "ecs"
+        }
       }
     }
-  }])
+  ])
 }
 
 resource "aws_ecs_task_definition" "ui" {

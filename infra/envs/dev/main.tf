@@ -1,6 +1,7 @@
-variable "region"      { default = "eu-north-1" }
-variable "project"     { default = "dmc-1-t1-notebook" }
-variable "environment" { default = "dev" }
+variable "region"             { default = "eu-north-1" }
+variable "project"            { default = "dmc-1-t1-notebook" }
+variable "environment"        { default = "dev" }
+variable "xray_sampling_rate" { default = 1.0 }
 
 module "shared" {
   source      = "../../shared"
@@ -23,6 +24,7 @@ module "environment" {
   ecs_security_group_id = module.shared.ecs_security_group_id
   rds_security_group_id = module.shared.rds_security_group_id
   alb_dns_name          = module.shared.alb_dns_name
+  xray_sampling_rate    = var.xray_sampling_rate
 }
 
 # ---------------------------------------------------------------------------
