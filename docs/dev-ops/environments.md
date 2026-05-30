@@ -6,7 +6,11 @@
 
 | Сервис | URL |
 |--------|-----|
-| UI + API (через ALB) | http://dmc-1-t1-notebook-dev-alb-1605418557.eu-north-1.elb.amazonaws.com |
+| UI (Notebook) | http://dmc-1-t1-notebook-dev-alb-1605418557.eu-north-1.elb.amazonaws.com |
+| API Swagger UI | http://dmc-1-t1-notebook-dev-alb-1605418557.eu-north-1.elb.amazonaws.com/docs |
+| API ReDoc | http://dmc-1-t1-notebook-dev-alb-1605418557.eu-north-1.elb.amazonaws.com/redoc |
+| API Health Check | http://dmc-1-t1-notebook-dev-alb-1605418557.eu-north-1.elb.amazonaws.com/api/v1/health |
+| API Health Check (БД) | http://dmc-1-t1-notebook-dev-alb-1605418557.eu-north-1.elb.amazonaws.com/api/v1/health/db |
 
 ### AWS Console
 

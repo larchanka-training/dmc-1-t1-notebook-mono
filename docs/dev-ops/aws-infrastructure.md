@@ -40,7 +40,8 @@
 | Target Group API | `dmc-1-t1-notebook-dev-api-tg` | port 8000, target type ip, healthcheck /api/v1/health, deregistration_delay 30s |
 | Target Group UI | `dmc-1-t1-notebook-dev-ui-tg` | port 80, target type ip, healthcheck /, deregistration_delay 30s |
 | Listener | — | port 80, default action → ui-tg |
-| Listener Rule | — | /api/v1/* → api-tg, priority 10 |
+| Listener Rule (API) | — | /api/v1/* → api-tg, priority 10 |
+| Listener Rule (Docs) | — | /docs, /docs/*, /redoc, /openapi.json → api-tg, priority 20 |
 
 ---
 
