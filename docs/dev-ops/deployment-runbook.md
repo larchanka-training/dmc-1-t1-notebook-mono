@@ -115,3 +115,32 @@ GitHub → mono репо → **Actions** → **Terraform** → **Run workflow** 
 
 1. [Target Groups](https://eu-north-1.console.aws.amazon.com/ec2/home?region=eu-north-1#TargetGroups:search=dmc-1-t1-notebook-dev) → выбрать `api-tg` или `ui-tg`
 2. Вкладка **Targets** — статус `healthy` или `unhealthy` с описанием причины
+
+---
+
+## Управление PR Preview
+
+### Принудительно обновить превью
+
+Если превью не обновилось автоматически (например, `changes` filter пропустил коммит):
+
+GitHub → UI репо → **Actions** → **PR Preview** → выбрать нужный run → **Re-run jobs**
+
+### Удалить превью вручную
+
+Если `cleanup-preview` job не отработал при закрытии PR:
+
+```bash
+aws s3 rm s3://dmc-1-t1-notebook-previews/pr-{N}/ --recursive
+aws cloudfront create-invalidation \
+  --distribution-id {CF_DISTRIBUTION_ID} \
+  --paths "/pr-{N}/*"
+```
+
+### Посмотреть все активные превью
+
+```bash
+aws s3 ls s3://dmc-1-t1-notebook-previews/
+```
+
+S3 Lifecycle автоматически удаляет файлы старше 7 дней — страховка на случай если cleanup job не сработал.

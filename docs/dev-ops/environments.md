@@ -85,3 +85,25 @@
 | Страница | Ссылка |
 |----------|--------|
 | Secrets Manager | https://eu-north-1.console.aws.amazon.com/secretsmanager/listsecrets?region=eu-north-1 |
+
+---
+
+## PR Previews
+
+UI-превью для каждого открытого PR в `dmc-1-t1-notebook-ui`.
+API-запросы проксируются через CloudFront на dev ALB (общая база данных с dev).
+
+### Ссылки
+
+| Страница | Ссылка |
+|----------|--------|
+| CloudFront Distributions | https://us-east-1.console.aws.amazon.com/cloudfront/v4/home#/distributions |
+| S3 Bucket (файлы превью) | https://s3.console.aws.amazon.com/s3/buckets/dmc-1-t1-notebook-previews?region=eu-north-1 |
+
+### Как найти превью конкретного PR
+
+URL превью всегда есть в комментарии к PR — обновляется автоматически при каждом коммите.
+
+Формат: `https://{CF_DOMAIN}/pr-{N}/`
+
+Актуальный `CF_DOMAIN` хранится в [GHA Variables](./github-actions.md#preview-previewyml) репо `dmc-1-t1-notebook-ui`.
