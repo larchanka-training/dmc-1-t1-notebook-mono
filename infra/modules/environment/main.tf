@@ -139,6 +139,8 @@ resource "aws_ecs_task_definition" "api" {
         { name = "OTEL_ENABLED", value = "true" },
         { name = "OTEL_ENDPOINT", value = "http://localhost:4317" },
         { name = "OTEL_SERVICE_NAME", value = "${local.name_prefix}-api" },
+        { name = "OTEL_TRACES_SAMPLER", value = "parentbased_traceidratio" },
+        { name = "OTEL_TRACES_SAMPLER_ARG", value = tostring(var.xray_sampling_rate) },
       ]
 
       portMappings = [{
@@ -159,10 +161,28 @@ resource "aws_ecs_task_definition" "api" {
       name      = "adot-collector"
       image     = "public.ecr.aws/aws-observability/aws-otel-collector:latest"
       essential = false
-      command   = ["--config=ssm:/${local.name_prefix}/adot-config"]
 
       environment = [
         { name = "AWS_DEFAULT_REGION", value = var.region },
+        { name = "AOT_CONFIG_CONTENT", value = <<-YAML
+          receivers:
+            otlp:
+              protocols:
+                grpc:
+                  endpoint: 0.0.0.0:4317
+          processors:
+            batch:
+          exporters:
+            awsxray:
+              region: ${var.region}
+          service:
+            pipelines:
+              traces:
+                receivers: [otlp]
+                processors: [batch]
+                exporters: [awsxray]
+        YAML
+        },
       ]
 
       logConfiguration = {
