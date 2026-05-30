@@ -57,3 +57,9 @@ variable "alb_dns_name" {
   description = "ALB DNS name"
   default     = ""
 }
+
+variable "xray_sampling_rate" {
+  description = "X-Ray trace sampling rate (0.0 to 1.0). Dev: 1.0, Prod: 0.3"
+  type        = number
+  default     = 0.1
+}
