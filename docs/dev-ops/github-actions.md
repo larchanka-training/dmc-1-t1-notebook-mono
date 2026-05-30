@@ -41,6 +41,36 @@
 
 ---
 
+### Preview (`preview.yml`)
+
+**Триггер:** PR в `main`/`develop` (opened, synchronize, reopened, closed)
+
+| Job | Условие | Описание |
+|-----|---------|----------|
+| `changes` | PR открыт/обновлён | Определяет есть ли изменения в коде (paths-filter) |
+| `deploy-preview` | изменения в коде, PR не закрыт | Сборка с `--base=/pr-{N}/`, sync в S3, инвалидация CF кэша, комментарий в PR |
+| `cleanup-preview` | PR закрыт | Удаляет `s3://bucket/pr-{N}/`, инвалидирует CF кэш |
+
+**Как это работает:**
+- UI собирается с путём `/pr-{N}/` как base path (Vite `--base` флаг)
+- Файлы загружаются в S3 bucket `dmc-1-t1-notebook-previews` по ключу `pr-{N}/`
+- CloudFront раздаёт статику; запросы `/api/v1/*` проксируются на dev ALB
+- Превью URL: `https://{CF_DOMAIN}/pr-{N}/`
+- При каждом новом коммите комментарий в PR обновляется (не создаётся новый)
+- При закрытии PR папка удаляется; S3 Lifecycle policy удаляет остатки через 7 дней
+
+**GHA Variables** (Settings → Secrets and variables → Actions → Variables, репо `dmc-1-t1-notebook-ui`):
+
+| Variable | Откуда взять | Описание |
+|----------|-------------|----------|
+| `S3_PREVIEW_BUCKET` | `terraform output preview_s3_bucket` | Имя S3 bucket для превью |
+| `CF_DISTRIBUTION_ID` | `terraform output preview_cf_distribution_id` | ID CloudFront distribution |
+| `CF_DOMAIN` | `terraform output preview_cf_domain` | Домен CloudFront (без `https://`) |
+
+Переменные устанавливаются вручную один раз после `terraform apply` в `infra/envs/dev/`.
+
+---
+
 ## dmc-1-t1-notebook-mono
 
 ### Terraform Dev (`terraform.yml`)

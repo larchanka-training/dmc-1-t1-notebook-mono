@@ -116,6 +116,24 @@ Retention: 7 дней.
 
 ---
 
+## PR Preview (dev-only)
+
+Ресурсы не привязаны к конкретному окружению. Создаются один раз из `infra/envs/dev/main.tf`.
+Preview работает с живым dev ALB: запросы `/api/v1/*` проксируются через CloudFront на dev ALB.
+
+| Ресурс | Имя | Параметры |
+|--------|-----|-----------|
+| S3 Bucket | `dmc-1-t1-notebook-previews` | Приватный, Lifecycle 7 дней |
+| CloudFront OAC | `dmc-1-t1-notebook-preview-oac` | sigv4, для S3 origin |
+| CloudFront Function | `dmc-1-t1-notebook-preview-spa-rewrite` | viewer-request, rewrite `/pr-N/path` → `/pr-N/index.html` |
+| CloudFront Distribution | см. `terraform output preview_cf_domain` | HTTPS, два origin: S3 (статика) + dev ALB (`/api/v1/*`) |
+
+**Routing в CloudFront:**
+- `/api/v1/*` → dev ALB (HTTP, без кэша)
+- `/*` → S3 (статика, SPA rewrite function)
+
+---
+
 ## Terraform State
 
 | Ресурс | Параметры |
