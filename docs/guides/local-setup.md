@@ -63,13 +63,27 @@ cp .env.example .env
 
 Открыть `.env` и заполнить все значения, помеченные `[REQUIRED]`.
 
+### Шаг 1. Запустить стек
+
+**macOS / Linux:**
 ```bash
-docker compose up
+make up
 ```
+
+**Windows (PowerShell):**
+```powershell
+.\start.ps1
+```
+
+Обе команды делают одно и то же: тянут последние изменения всех репозиториев,
+пересобирают образы если изменились зависимости, запускают все сервисы
+и применяют миграции БД.
 
 ### Остановка сервисов
 
-```
+```bash
+make down
+# или напрямую:
 docker compose down
 ```
 
@@ -119,12 +133,17 @@ docker compose down
 
 ## Полезные команды
 
-| Команда | Описание |
-|---------|----------|
-| `docker ps` | Показать запущенные контейнеры |
-| `docker compose logs -f` | Стримить логи сервисов |
-| `docker compose down` | Остановить все сервисы |
-| `docker compose up -d --build` | Пересобрать и перезапустить |
+| Команда | Платформа | Описание |
+|---------|-----------|----------|
+| `make up` | macOS / Linux | Запустить всё свежее (pull + build + migrate) |
+| `.\start.ps1` | Windows | То же самое для PowerShell |
+| `make fresh` | macOS / Linux | Полная пересборка с нуля (⚠️ удаляет данные БД) |
+| `make down` | macOS / Linux | Остановить сервисы |
+| `make logs` | macOS / Linux | Логи всех сервисов в реальном времени |
+| `docker ps` | все | Показать запущенные контейнеры |
+| `docker compose logs -f` | все | Стримить логи сервисов |
+
+Полный список команд: [docker-compose.md](./docker-compose.md)
 
 ---
 
