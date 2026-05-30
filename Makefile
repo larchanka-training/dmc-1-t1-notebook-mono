@@ -14,7 +14,7 @@ up:
 	@echo "→ Starting services (waiting for health checks)..."
 	docker compose up -d --wait
 	@echo "→ Applying DB migrations..."
-	docker compose exec api alembic upgrade head
+	@docker compose exec api sh -c "command -v alembic >/dev/null 2>&1 && alembic upgrade head || echo '  ℹ  alembic not configured yet — skipping (see .agents/add-model.md)'"
 	@echo "✓ Stack is up. See: https://notebook.com"
 
 # ─────────────────────────────────────────────
@@ -33,7 +33,7 @@ fresh:
 	@echo "→ Starting services..."
 	docker compose up -d --wait
 	@echo "→ Applying DB migrations..."
-	docker compose exec api alembic upgrade head
+	@docker compose exec api sh -c "command -v alembic >/dev/null 2>&1 && alembic upgrade head || echo '  ℹ  alembic not configured yet — skipping (see .agents/add-model.md)'"
 	@echo "✓ Fresh stack is up."
 
 # ─────────────────────────────────────────────
