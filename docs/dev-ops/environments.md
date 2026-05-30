@@ -1,0 +1,45 @@
+# Окружения
+
+## Dev
+
+### Приложение
+
+| Сервис | URL |
+|--------|-----|
+| UI + API (через ALB) | http://dmc-1-t1-notebook-dev-alb-1605418557.eu-north-1.elb.amazonaws.com |
+
+### AWS Console
+
+**ECS**
+
+| Страница | Ссылка |
+|----------|--------|
+| Сервисы кластера | https://eu-north-1.console.aws.amazon.com/ecs/v2/clusters/dmc-1-t1-notebook-dev/services?region=eu-north-1 |
+| Логи API | https://eu-north-1.console.aws.amazon.com/cloudwatch/home?region=eu-north-1#logsV2:log-groups/log-group/$252Fecs$252Fdmc-1-t1-notebook-api-dev |
+| Логи UI | https://eu-north-1.console.aws.amazon.com/cloudwatch/home?region=eu-north-1#logsV2:log-groups/log-group/$252Fecs$252Fdmc-1-t1-notebook-ui-dev |
+
+**База данных**
+
+| Страница | Ссылка |
+|----------|--------|
+| RDS instance | https://eu-north-1.console.aws.amazon.com/rds/home?region=eu-north-1#database:id=dmc-1-t1-notebook-dev-db;is-cluster=false |
+
+**Сеть и балансировка**
+
+| Страница | Ссылка |
+|----------|--------|
+| ALB | https://eu-north-1.console.aws.amazon.com/ec2/home?region=eu-north-1#LoadBalancers:search=dmc-1-t1-notebook-dev-alb |
+| Target Groups | https://eu-north-1.console.aws.amazon.com/ec2/home?region=eu-north-1#TargetGroups:search=dmc-1-t1-notebook-dev |
+| VPC | https://eu-north-1.console.aws.amazon.com/vpc/home?region=eu-north-1#vpcs:search=dmc-1-t1-notebook-dev |
+
+**Безопасность**
+
+| Страница | Ссылка |
+|----------|--------|
+| Secrets Manager | https://eu-north-1.console.aws.amazon.com/secretsmanager/listsecrets?region=eu-north-1 |
+
+---
+
+## Prod
+
+> Будет добавлено после реализации Sub-task 6.
