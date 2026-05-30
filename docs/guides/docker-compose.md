@@ -4,6 +4,40 @@
 
 ---
 
+## Быстрый старт — одна команда на всё
+
+Не хочешь думать что там намержили другие разработчики? Одна команда сделает всё:
+
+```bash
+make up
+```
+
+Что происходит под капотом:
+1. `git pull origin main` + `git submodule update --remote --merge` — тянет последние изменения API и UI
+2. `docker compose build` — пересобирает образы если изменились зависимости (использует кэш, быстро)
+3. `docker compose up -d --wait` — поднимает все сервисы, ждёт health checks
+4. `docker compose exec api alembic upgrade head` — применяет новые миграции БД
+
+### Остальные Makefile-команды
+
+| Команда | Платформа | Когда использовать |
+|---------|-----------|-------------------|
+| `make up` | macOS / Linux | Стандартный запуск — тянет всё свежее и запускает |
+| `.\start.ps1` | Windows | То же самое, но для PowerShell |
+| `make fresh` | macOS / Linux | Что-то сломалось — полная пересборка без кэша, удаляет volumes (⚠️ БД очищается) |
+| `make down` | macOS / Linux | Остановить стек (данные сохраняются) |
+| `make wipe` | macOS / Linux | Остановить и удалить все данные |
+| `make migrate` | macOS / Linux | Применить только миграции (стек уже запущен) |
+| `make logs` | macOS / Linux | Стримить логи всех сервисов |
+| `make ps` | macOS / Linux | Статус контейнеров |
+
+> `make` запускается из корня mono репозитория (рядом с `docker-compose.yml`).  
+> `start.ps1` — тоже из корня, через PowerShell: `.\start.ps1`
+
+---
+
+---
+
 ## Сервисы
 
 ```mermaid
@@ -113,6 +147,19 @@ docker compose ps
 ```bash
 docker compose restart api
 ```
+
+### Применить новые миграции БД
+
+После того как кто-то добавил новую модель — применить миграцию к локальной БД:
+
+```bash
+docker compose exec api alembic upgrade head
+# или короче:
+make migrate
+```
+
+> Только локально. В dev/prod на AWS миграции применяются автоматически
+> при старте ECS-контейнера — делать ничего не нужно.
 
 ---
 
