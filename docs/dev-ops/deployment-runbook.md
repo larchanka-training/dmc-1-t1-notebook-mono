@@ -81,7 +81,27 @@ http://dmc-1-t1-notebook-dev-alb-1605418557.eu-north-1.elb.amazonaws.com/api/v1/
 
 ---
 
-## Перезапустить terraform apply вручную
+## Задеплоить на prod
+
+**Шаг 1 — Создать prod инфраструктуру (только первый раз):**
+
+GitHub → mono репо → **Actions** → **Terraform Prod** → **Run workflow**
+- `action`: выбрать `plan`, проверить вывод
+- Запустить повторно с `action: apply`
+
+После apply — установить GHCR credentials для prod (см. [secrets-management.md](./secrets-management.md)), заменив имя секрета на `dmc-1-t1-notebook-prod-ghcr-credentials`.
+
+**Шаг 2 — Задеплоить API на prod:**
+
+GitHub → API репо → **Actions** → **CI/CD** → **Run workflow**
+- Выбрать ветку `main`
+- `image_tag`: оставить пустым (задеплоит текущий HEAD) или указать конкретный `sha-<commit>` для rollback
+
+**Шаг 3 — Задеплоить UI на prod:**
+
+GitHub → UI репо → **Actions** → **CI/CD** → **Run workflow** (аналогично)
+
+## Перезапустить terraform apply вручную (dev)
 
 Если нужно применить изменения инфраструктуры без коммита:
 

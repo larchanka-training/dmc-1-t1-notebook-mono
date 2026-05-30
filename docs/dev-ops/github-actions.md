@@ -4,7 +4,7 @@
 
 ### CI/CD (`ci-cd.yml`)
 
-**Триггер:** push в `main`/`develop`, теги `v*`, PR в `main`/`develop`
+**Триггер:** push в `main`/`develop`, теги `v*`, PR в `main`/`develop`, `workflow_dispatch`
 
 | Job | Условие | Описание |
 |-----|---------|----------|
@@ -13,6 +13,7 @@
 | `test` | изменения в коде | Запуск pytest |
 | `build` | изменения в коде | Сборка Docker-образа и push в GHCR (только при push в main/тег) |
 | `deploy-dev` | push в main | Деплой на dev ECS: новая ревизия task definition с `sha-<commit>` тегом |
+| `deploy-prod` | `workflow_dispatch` | Ручной деплой на prod ECS. Опциональный input `image_tag` (по умолчанию `sha-<текущий commit>`) |
 | `notify-mono` | push в main | Отправка `repository-dispatch` в mono репо для обновления submodule |
 
 **Теги образов:**
@@ -26,7 +27,7 @@
 
 ### CI/CD (`ci-cd.yml`)
 
-**Триггер:** push в `main`/`develop`, теги `v*`, PR в `main`/`develop`
+**Триггер:** push в `main`/`develop`, теги `v*`, PR в `main`/`develop`, `workflow_dispatch`
 
 | Job | Условие | Описание |
 |-----|---------|----------|
@@ -35,13 +36,14 @@
 | `test` | изменения в коде | Запуск vitest |
 | `build` | изменения в коде | Сборка Docker-образа и push в GHCR (только при push в main/тег) |
 | `deploy-dev` | push в main | Деплой на dev ECS: новая ревизия task definition с `sha-<commit>` тегом |
+| `deploy-prod` | `workflow_dispatch` | Ручной деплой на prod ECS. Опциональный input `image_tag` (по умолчанию `sha-<текущий commit>`) |
 | `notify-mono` | push в main | Отправка `repository-dispatch` в mono репо для обновления submodule |
 
 ---
 
 ## dmc-1-t1-notebook-mono
 
-### Terraform (`terraform.yml`)
+### Terraform Dev (`terraform.yml`)
 
 **Триггер:** push/PR в `main` (изменения в `infra/`), `workflow_dispatch`
 
@@ -51,6 +53,19 @@
 | `terraform-dev` (Apply) | push в main | `terraform init` + `validate` + `apply` — автоматический деплой инфраструктуры dev |
 
 **State:** хранится в S3 `dmc-1-t1-notebook-terraform-state`, ключ `dev/terraform.tfstate`. Лок через DynamoDB.
+
+### Terraform Prod (`terraform-prod.yml`)
+
+**Триггер:** только `workflow_dispatch` (ручной запуск)
+
+**Input:** `action` — `plan` (по умолчанию) или `apply`
+
+| Шаг | Условие | Описание |
+|-----|---------|----------|
+| Plan | всегда | `terraform init` + `validate` + `plan` |
+| Apply | `action == apply` | `terraform apply` — создаёт/обновляет prod инфраструктуру |
+
+**State:** ключ `prod/terraform.tfstate`. Лок через DynamoDB.
 
 ### Update Submodules (`update-submodules.yml`)
 
