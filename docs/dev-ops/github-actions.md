@@ -39,6 +39,11 @@
 | `deploy-prod` | `workflow_dispatch` | Ручной деплой на prod ECS. Опциональный input `image_tag` (по умолчанию `sha-<текущий commit>`) |
 | `notify-mono` | push в main | Отправка `repository-dispatch` в mono репо для обновления submodule |
 
+**Теги образов:**
+- `latest` — при push в main
+- `sha-<commit>` — при каждом push (используется для деплоя и rollback)
+- `v1.2.3` — при push тега
+
 ---
 
 ### Preview (`preview.yml`)
@@ -113,6 +118,6 @@
 
 | Секрет | Используется в |
 |--------|---------------|
-| `AWS_ACCESS_KEY_ID` | terraform.yml, ci-cd.yml (deploy-dev job) |
-| `AWS_SECRET_ACCESS_KEY` | terraform.yml, ci-cd.yml (deploy-dev job) |
+| `AWS_ACCESS_KEY_ID` | terraform.yml, terraform-prod.yml, ci-cd.yml (deploy-dev, deploy-prod) |
+| `AWS_SECRET_ACCESS_KEY` | terraform.yml, terraform-prod.yml, ci-cd.yml (deploy-dev, deploy-prod) |
 | `MONO_REPO_PAT` | update-submodules.yml (push и создание PR), notify-mono job в api/ui |
