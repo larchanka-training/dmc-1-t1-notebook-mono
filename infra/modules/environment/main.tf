@@ -141,6 +141,7 @@ resource "aws_ecs_task_definition" "api" {
         { name = "OTEL_SERVICE_NAME", value = "${local.name_prefix}-api" },
         { name = "OTEL_TRACES_SAMPLER", value = "parentbased_traceidratio" },
         { name = "OTEL_TRACES_SAMPLER_ARG", value = tostring(var.xray_sampling_rate) },
+        { name = "OTEL_LOGS_ENABLED", value = "false" },
       ]
 
       portMappings = [{
