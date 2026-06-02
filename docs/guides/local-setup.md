@@ -63,6 +63,8 @@ cp .env.example .env
 
 Открыть `.env` и заполнить все значения, помеченные `[REQUIRED]`.
 
+Для локальной разработки достаточно значений по умолчанию из `.env.example`. Обратите внимание на переменную `JWT_SECRET` — в `.env.example` она содержит небезопасное значение-заглушку. Для локальной работы это нормально; в production она **должна** быть заменена на случайный секрет (см. [secrets-management.md](../dev-ops/secrets-management.md)).
+
 ### Шаг 1. Запустить стек
 
 **macOS / Linux:**
@@ -138,6 +140,7 @@ docker compose down
 | `make up` | macOS / Linux | Запустить всё свежее (pull + build + migrate) |
 | `.\start.ps1` | Windows | То же самое для PowerShell |
 | `make fresh` | macOS / Linux | Полная пересборка с нуля (⚠️ удаляет данные БД) |
+| `make migrate` | macOS / Linux | Применить миграции БД вручную (без перезапуска стека) |
 | `make down` | macOS / Linux | Остановить сервисы |
 | `make logs` | macOS / Linux | Логи всех сервисов в реальном времени |
 | `docker ps` | все | Показать запущенные контейнеры |

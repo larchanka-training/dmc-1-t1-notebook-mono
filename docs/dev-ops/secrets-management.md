@@ -6,6 +6,28 @@
 
 ## Секреты в dev окружении
 
+### `dmc-1-t1-notebook-dev-jwt-secret`
+
+Случайная строка для подписи JWT access-токенов:
+
+```
+<минимум 32 случайных байта, base64 или hex>
+```
+
+- Создаётся вручную и добавляется в Secrets Manager
+- ECS получает значение при старте задачи как переменную окружения `JWT_SECRET`
+- Утечка этого секрета позволяет создавать произвольные access-токены — относитесь к нему как к паролю
+
+Сгенерировать значение:
+
+```bash
+openssl rand -hex 32
+```
+
+> **Локальная разработка:** `.env.example` содержит слабый дефолт `dev-jwt-secret-replace-in-production`. Для локальной работы этого достаточно — в production значение **обязательно** переопределяется через этот секрет.
+
+---
+
 ### `dmc-1-t1-notebook-dev-db-password`
 
 Полная строка подключения к базе данных:
@@ -44,6 +66,10 @@ ECS-агент при старте задачи обращается к Secrets 
   {
     "name": "DATABASE_URL",
     "valueFrom": "arn:aws:secretsmanager:...:secret:dmc-1-t1-notebook-dev-db-password-..."
+  },
+  {
+    "name": "JWT_SECRET",
+    "valueFrom": "arn:aws:secretsmanager:...:secret:dmc-1-t1-notebook-dev-jwt-secret-..."
   }
 ]
 ```
@@ -60,7 +86,7 @@ ECS-агент при старте задачи обращается к Secrets 
 
 ## Кто имеет доступ
 
-IAM роль `dmc-1-t1-notebook-dev-ecs-execution-role` имеет право `secretsmanager:GetSecretValue` только на эти два секрета. Никакого широкого доступа к Secrets Manager нет.
+IAM роль `dmc-1-t1-notebook-dev-ecs-execution-role` имеет право `secretsmanager:GetSecretValue` только на эти три секрета (`db-password`, `ghcr-credentials`, `jwt-secret`). Никакого широкого доступа к Secrets Manager нет.
 
 ---
 
