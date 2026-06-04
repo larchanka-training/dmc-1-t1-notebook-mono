@@ -1,8 +1,8 @@
 # OS / Editor
 .DS_Store
-.idea/
-.vscode/
-.claude/
+**/.idea/
+**/.vscode/
+**/.claude/
 *.swp
 *.swo
 
