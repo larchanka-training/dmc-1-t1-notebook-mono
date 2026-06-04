@@ -121,6 +121,9 @@
 
 > **Для MVP серверное выполнение — опциональная функция.** Основной режим — браузерный QuickJS+WASM.
 
+> **Связанное:** валидация ответов ИИ перед выводом в Code Cell описана в
+> [`ai-output-validation.md`](./ai-output-validation.md) (тот же Engineer #4).
+
 ## 7. Диаграмма потока исполнения (Execution Flow)
 
 ```mermaid
