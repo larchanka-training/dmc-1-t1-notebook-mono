@@ -90,6 +90,7 @@ Develop a web application for working with AI tools, JavaScript code, data stora
 - POST `/ai/chat`
 - POST `/ai/generate`
 - POST `/ai/embeddings`
+- POST `/ai/context` — сборка контекста notebook (предыдущие ячейки, markdown, код, outputs) для передачи в LLM (см. `docs/architecture/ai-notebook-context.md`)
 - POST `/ai/validate` — валидация/«починка» ответа ИИ перед выводом в Code Cell (см. `docs/architecture/ai-output-validation.md`)
 
 ### User API
