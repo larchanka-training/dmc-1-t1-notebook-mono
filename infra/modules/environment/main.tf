@@ -142,6 +142,11 @@ resource "aws_ecs_task_definition" "api" {
         { name = "OTEL_TRACES_SAMPLER", value = "parentbased_traceidratio" },
         { name = "OTEL_TRACES_SAMPLER_ARG", value = tostring(var.xray_sampling_rate) },
         { name = "OTEL_LOGS_ENABLED", value = "false" },
+        { name = "BEDROCK_MODEL_ID", value = var.bedrock_model_id },
+        { name = "BEDROCK_REGION", value = var.region },
+        { name = "AI_RATE_LIMIT_RPM", value = tostring(var.ai_rate_limit_rpm) },
+        { name = "AI_RATE_LIMIT_RPD", value = tostring(var.ai_rate_limit_rpd) },
+        { name = "AI_MAX_PROMPT_CHARS", value = tostring(var.ai_max_prompt_chars) },
       ]
 
       portMappings = [{
