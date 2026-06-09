@@ -63,3 +63,26 @@ variable "xray_sampling_rate" {
   type        = number
   default     = 0.1
 }
+
+variable "bedrock_model_id" {
+  description = "AWS Bedrock foundation model ID for AI code generation"
+  type        = string
+}
+
+variable "ai_rate_limit_rpm" {
+  description = "AI endpoint: max requests per minute per user"
+  type        = number
+  default     = 10
+}
+
+variable "ai_rate_limit_rpd" {
+  description = "AI endpoint: max requests per day per user"
+  type        = number
+  default     = 100
+}
+
+variable "ai_max_prompt_chars" {
+  description = "AI endpoint: max prompt size in characters (~8K tokens at 32000)"
+  type        = number
+  default     = 32000
+}

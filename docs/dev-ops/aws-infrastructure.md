@@ -52,6 +52,7 @@
 | `alb-sg` | TCP 80 от 0.0.0.0/0 | Трафик из интернета на ALB |
 | `ecs-sg` | TCP 8000 от alb-sg, TCP 80 от alb-sg | Трафик с ALB на контейнеры |
 | `rds-sg` | TCP 5432 от ecs-sg | Трафик с ECS на PostgreSQL |
+| `bedrock-endpoint-sg` | TCP 443 от ecs-sg | Трафик с ECS на VPC endpoint Bedrock |
 
 ---
 
@@ -102,17 +103,47 @@
 | `dmc-1-t1-notebook-dev-ecs-execution-role` | Роль для ECS task execution (pull образов, запись логов, чтение секретов) |
 | `AmazonECSTaskExecutionRolePolicy` | Managed policy: базовые права ECS execution |
 | `dmc-1-t1-notebook-dev-ecs-secrets-policy` | Inline policy: `secretsmanager:GetSecretValue` на оба секрета |
+| `dmc-1-t1-notebook-dev-ecs-task-role` | Роль для работающих контейнеров (X-Ray, Bedrock) |
+| `dmc-1-t1-notebook-dev-ecs-xray-policy` | Inline policy: запись трейсов в X-Ray |
+| `dmc-1-t1-notebook-dev-ecs-bedrock-policy` | Inline policy: `bedrock:InvokeModel`, `bedrock:Converse` и stream-варианты |
+| `dmc-1-t1-notebook-prod-bedrock-logging-role` | Роль для Bedrock → CloudWatch (только prod, account-scoped) |
 
 ---
 
 ## CloudWatch
 
-| Log Group | Содержимое |
-|-----------|-----------|
-| `/ecs/dmc-1-t1-notebook-api-dev` | Логи API контейнера (FastAPI) |
-| `/ecs/dmc-1-t1-notebook-ui-dev` | Логи UI контейнера (Nginx) |
+| Log Group | Содержимое | Окружение |
+|-----------|-----------|-----------|
+| `/ecs/dmc-1-t1-notebook-api-dev` | Логи API контейнера (FastAPI) | dev + prod |
+| `/ecs/dmc-1-t1-notebook-ui-dev` | Логи UI контейнера (Nginx) | dev + prod |
+| `/ecs/dmc-1-t1-notebook-adot-dev` | Логи ADOT Collector sidecar | dev + prod |
+| `/aws/bedrock/dmc-1-t1-notebook-prod` | Все вызовы Bedrock моделей (invocation logging) | prod only |
 
-Retention: 7 дней.
+Retention: 7 дней для всех групп.
+
+---
+
+## Bedrock / AI
+
+Трафик к AWS Bedrock идёт через VPC Interface Endpoint — не через NAT/интернет.
+
+| Ресурс | Имя | Параметры |
+|--------|-----|-----------|
+| VPC Endpoint | `dmc-1-t1-notebook-dev-bedrock-runtime-endpoint` | Interface, `bedrock-runtime`, private DNS enabled |
+| Security Group | `dmc-1-t1-notebook-dev-bedrock-endpoint-sg` | TCP 443 только от ecs-sg |
+
+**Credentials:** ECS task role. Контейнеры получают доступ к Bedrock автоматически через IAM, без явных ключей.
+
+**Модели (конфигурируются через `BEDROCK_MODEL_ID`):**
+
+| Окружение | Модель | Причина |
+|-----------|--------|---------|
+| dev | `amazon.nova-lite-v1:0` | Быстрее и дешевле |
+| prod | `amazon.nova-pro-v1:0` | Выше качество генерации |
+
+Amazon Nova модели не требуют ручной активации — включаются автоматически при первом вызове.
+
+**Invocation logging (prod only):** все вызовы моделей пишутся в CloudWatch (`/aws/bedrock/dmc-1-t1-notebook-prod`). Конфигурация — account-scoped ресурс, создаётся только в prod, чтобы не конфликтовать при shared account.
 
 ---
 

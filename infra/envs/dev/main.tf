@@ -2,6 +2,10 @@ variable "region"             { default = "eu-north-1" }
 variable "project"            { default = "dmc-1-t1-notebook" }
 variable "environment"        { default = "dev" }
 variable "xray_sampling_rate" { default = 1.0 }
+variable "bedrock_model_id"   { default = "amazon.nova-lite-v1:0" }
+variable "ai_rate_limit_rpm"    { default = 10 }
+variable "ai_rate_limit_rpd"    { default = 100 }
+variable "ai_max_prompt_chars"  { default = 32000 }
 
 module "shared" {
   source      = "../../shared"
@@ -25,6 +29,10 @@ module "environment" {
   rds_security_group_id = module.shared.rds_security_group_id
   alb_dns_name          = module.shared.alb_dns_name
   xray_sampling_rate    = var.xray_sampling_rate
+  bedrock_model_id      = var.bedrock_model_id
+  ai_rate_limit_rpm     = var.ai_rate_limit_rpm
+  ai_rate_limit_rpd     = var.ai_rate_limit_rpd
+  ai_max_prompt_chars   = var.ai_max_prompt_chars
 }
 
 # ---------------------------------------------------------------------------

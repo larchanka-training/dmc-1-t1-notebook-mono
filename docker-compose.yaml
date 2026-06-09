@@ -46,6 +46,11 @@ services:
       OTEL_ENABLED: ${OTEL_ENABLED:-false}
       OTEL_ENDPOINT: ${OTEL_ENDPOINT:-http://aspire-dashboard:18889}
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-dmc-1-t1-notebook-api}
+      BEDROCK_MODEL_ID: ${BEDROCK_MODEL_ID:-amazon.nova-lite-v1:0}
+      BEDROCK_REGION: ${BEDROCK_REGION:-eu-north-1}
+      AI_RATE_LIMIT_RPM: ${AI_RATE_LIMIT_RPM:-10}
+      AI_RATE_LIMIT_RPD: ${AI_RATE_LIMIT_RPD:-100}
+      AI_MAX_PROMPT_CHARS: ${AI_MAX_PROMPT_CHARS:-32000}
     depends_on:
       postgres:
         condition: service_healthy
