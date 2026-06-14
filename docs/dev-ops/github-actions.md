@@ -12,8 +12,8 @@
 | `lint` | изменения в коде | Проверка стиля через ruff |
 | `test` | изменения в коде | Запуск pytest |
 | `build` | изменения в коде | Сборка Docker-образа и push в GHCR (только при push в main/тег) |
-| `deploy-dev` | push в main | Деплой на dev ECS: новая ревизия task definition с `sha-<commit>` тегом |
-| `deploy-prod` | `workflow_dispatch` | Ручной деплой на prod ECS. Опциональный input `image_tag` (по умолчанию `sha-<текущий commit>`) |
+| `deploy-dev` | push в main | Деплой на dev ECS: новая ревизия task definition с `sha-<commit>` тегом. Ждёт стабилизации сервиса (`aws ecs wait services-stable`) — job падает если контейнер не запустился. |
+| `deploy-prod` | `workflow_dispatch` | Ручной деплой на prod ECS. Опциональный input `image_tag` (по умолчанию `sha-<текущий commit>`). Также ждёт стабилизации. |
 | `notify-mono` | push в main | Отправка `repository-dispatch` в mono репо для обновления submodule |
 
 **Теги образов:**
@@ -35,8 +35,8 @@
 | `lint` | изменения в коде | Проверка через ESLint |
 | `test` | изменения в коде | Запуск vitest |
 | `build` | изменения в коде | Сборка Docker-образа и push в GHCR (только при push в main/тег) |
-| `deploy-dev` | push в main | Деплой на dev ECS: новая ревизия task definition с `sha-<commit>` тегом |
-| `deploy-prod` | `workflow_dispatch` | Ручной деплой на prod ECS. Опциональный input `image_tag` (по умолчанию `sha-<текущий commit>`) |
+| `deploy-dev` | push в main | Деплой на dev ECS: новая ревизия task definition с `sha-<commit>` тегом. Ждёт стабилизации сервиса (`aws ecs wait services-stable`) — job падает если контейнер не запустился. |
+| `deploy-prod` | `workflow_dispatch` | Ручной деплой на prod ECS. Опциональный input `image_tag` (по умолчанию `sha-<текущий commit>`). Также ждёт стабилизации. |
 | `notify-mono` | push в main | Отправка `repository-dispatch` в mono репо для обновления submodule |
 
 **Теги образов:**

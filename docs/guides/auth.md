@@ -18,13 +18,11 @@ Two tokens are issued on every login or register:
 All auth cookies are set with:
 
 ```
-HttpOnly: true        — not readable by JS
-Secure:   true        — HTTPS only (always enabled; local dev uses HTTPS via the proxy)
-SameSite: Lax         — sent on same-site + top-level cross-site GETs
-Domain:   .notebook.com
+HttpOnly: true     — not readable by JS
+Secure:   <env>    — see SECURE_COOKIES below
+SameSite: Lax      — sent on same-site + top-level cross-site GETs
+Domain:   <env>    — see COOKIE_DOMAIN below
 ```
-
-`COOKIE_DOMAIN` can be overridden via environment variable.
 
 ---
 
@@ -176,7 +174,8 @@ Passwords are hashed with **bcrypt** (the `bcrypt` package directly — passlib 
 | `JWT_ALGORITHM` | `HS256` | JWT signing algorithm |
 | `ACCESS_TOKEN_TTL_SECONDS` | `900` | 15 minutes |
 | `SESSION_TTL_SECONDS` | `604800` | 7 days (refresh token lifetime) |
-| `COOKIE_DOMAIN` | `.notebook.com` | Override for non-standard domain setups |
+| `COOKIE_DOMAIN` | `""` (empty) | Cookie `Domain` attribute. Empty = scoped to the current host. Set to `.notebook.com` for local dev (already set in `docker-compose.yaml`). |
+| `SECURE_COOKIES` | `false` | Set `true` when the app is served over HTTPS. Local dev uses HTTPS via the proxy but `false` still works. Set `true` in ECS once HTTPS is configured on the ALB. |
 
 ---
 
