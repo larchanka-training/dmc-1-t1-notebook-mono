@@ -282,3 +282,74 @@ resource "aws_lb_listener_rule" "api_docs" {
     }
   }
 }
+
+# CloudFront distribution — HTTPS termination in front of the HTTP-only ALB.
+# Uses the free *.cloudfront.net certificate so no custom domain is required.
+
+resource "aws_cloudfront_distribution" "main" {
+  enabled = true
+  comment = "${local.name_prefix}"
+
+  origin {
+    domain_name = aws_lb.main.dns_name
+    origin_id   = "alb"
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "http-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  # API routes: no cache, all HTTP methods, forward all headers and cookies
+  # so that auth tokens and request bodies reach the FastAPI backend unchanged.
+  ordered_cache_behavior {
+    path_pattern     = "/api/v1/*"
+    target_origin_id = "alb"
+    allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods   = ["GET", "HEAD"]
+
+    forwarded_values {
+      query_string = true
+      headers      = ["*"]
+      cookies { forward = "all" }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 0
+    max_ttl                = 0
+  }
+
+  # Default: UI and docs — GET only, no cache, no cookie/header forwarding needed.
+  # ALB listener rules still route /docs* and /openapi.json to the API container.
+  default_cache_behavior {
+    target_origin_id = "alb"
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD"]
+
+    forwarded_values {
+      query_string = false
+      headers      = []
+      cookies { forward = "none" }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 0
+    max_ttl                = 0
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+
+  tags = { Name = "${local.name_prefix}-cf" }
+}
