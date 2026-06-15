@@ -147,6 +147,28 @@ Amazon Nova модели не требуют ручной активации —
 
 ---
 
+## CloudFront — HTTPS
+
+Каждое окружение получает CloudFront distribution, которая терминирует HTTPS перед HTTP ALB. Сертификат — бесплатный `*.cloudfront.net` (не требует кастомного домена). Ресурс описан в `infra/shared/main.tf`.
+
+```
+Браузер (HTTPS) → CloudFront (*.cloudfront.net) → ALB (HTTP:80) → ECS
+```
+
+| Параметр | Значение |
+|----------|----------|
+| Origin | ALB, `http-only`, port 80 |
+| Сертификат | `cloudfront_default_certificate = true` |
+| `/api/v1/*` | Нет кэша, все методы, все заголовки и cookies проксируются |
+| `/*` (UI) | Нет кэша, GET/HEAD, без cookies и заголовков |
+| HTTP → HTTPS | `redirect-to-https` на обоих behaviour |
+
+**Зачем нужно**: Cache Storage API (используется WebLLM для хранения весов модели) доступен только в secure context. На `*.elb.amazonaws.com` нельзя выпустить ACM-сертификат — только CloudFront решает проблему без кастомного домена.
+
+HTTPS URL окружения: `terraform output cloudfront_domain_name` из соответствующего `infra/envs/{env}/`.
+
+---
+
 ## PR Preview (dev-only)
 
 Ресурсы не привязаны к конкретному окружению. Создаются один раз из `infra/envs/dev/main.tf`.

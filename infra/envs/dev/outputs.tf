@@ -1,6 +1,11 @@
 output "alb_dns_name" {
   value       = module.shared.alb_dns_name
-  description = "Dev ALB DNS name"
+  description = "Dev ALB DNS name (HTTP only — use cloudfront_domain_name for HTTPS)"
+}
+
+output "cloudfront_domain_name" {
+  value       = module.shared.cloudfront_domain_name
+  description = "Dev HTTPS URL via CloudFront"
 }
 
 output "preview_s3_bucket" {
