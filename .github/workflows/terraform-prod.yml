@@ -11,6 +11,14 @@ on:
         options:
           - plan
           - apply
+      replace_task_definition:
+        description: "Force-replace the API task definition (fixes model ID drift)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 env:
   TF_VERSION: "1.9.0"
@@ -45,8 +53,18 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan -no-color
+        run: |
+          REPLACE_FLAG=""
+          if [ "${{ github.event.inputs.replace_task_definition }}" = "true" ]; then
+            REPLACE_FLAG="-replace=module.environment.aws_ecs_task_definition.api"
+          fi
+          terraform plan -no-color $REPLACE_FLAG
 
       - name: Terraform Apply
         if: github.event.inputs.action == 'apply'
-        run: terraform apply -auto-approve -no-color
+        run: |
+          REPLACE_FLAG=""
+          if [ "${{ github.event.inputs.replace_task_definition }}" = "true" ]; then
+            REPLACE_FLAG="-replace=module.environment.aws_ecs_task_definition.api"
+          fi
+          terraform apply -auto-approve -no-color $REPLACE_FLAG
