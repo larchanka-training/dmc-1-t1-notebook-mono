@@ -5,8 +5,12 @@
 ### Приложение
 
 > **HTTPS (CloudFront)** — основная точка входа. Прямые ALB URL (HTTP) работают, но не поддерживают WebLLM из-за ограничений браузера на Cache Storage API в insecure context.
->
-> HTTPS URL: `cd infra/envs/dev && terraform output cloudfront_domain_name`
+
+| Сервис | URL |
+|--------|-----|
+| UI (Notebook) | https://d1fa8v8wb6f2t9.cloudfront.net |
+| API Swagger UI | https://d1fa8v8wb6f2t9.cloudfront.net/docs |
+| API Health Check | https://d1fa8v8wb6f2t9.cloudfront.net/api/v1/health |
 
 | Сервис | URL |
 |--------|-----|
