@@ -1,0 +1,19 @@
+name: dmc-1-t1-notebook-mono
+out_dir: .graphweave
+repos:
+  - name: api
+    path: ./api
+    pull: false
+  - name: ui
+    path: ./ui
+    pull: false
+  - name: proxy
+    path: ./proxy
+    pull: false
+relations:
+  - from: ui
+    to: api
+    kind: consumes-api
+  - from: api
+    to: proxy
+    kind: routed-through

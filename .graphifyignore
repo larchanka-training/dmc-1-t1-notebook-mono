@@ -1,0 +1,70 @@
+# OS / Editor
+**/.idea
+**/.vscode
+**/.claude
+**/.DS_Store
+*.swp
+*.swo
+
+# Python
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+**/.venv
+**/venv
+
+# Node
+**/node_modules
+**/dist
+**/dist-ssr
+**/coverage
+**/*.tsbuildinfo
+
+# Environment and secrets
+**/.env
+**/.env.*
+**/*.local
+**/*.pem
+**/*.key
+**/*.crt
+
+# Logs
+**/*.log
+**/logs
+
+# Docker / runtime data
+**/.docker
+**/docker-data
+
+# Databases
+**/*.db
+**/*.sqlite3
+
+# Egg-info / build artifacts
+**/*.egg-info
+
+# Code-only graph: документы/PDF/office/картинки требуют LLM для
+# семантической экстракции. Исключаем, чтобы `graphweave up` работал без ключа.
+**/*.md
+**/*.mdx
+**/*.txt
+**/*.rst
+**/*.html
+**/*.yaml
+**/*.yml
+**/*.pdf
+**/*.docx
+**/*.xlsx
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.webp
+**/*.svg
+**/*.ico
+
+# Submodule .git pointers
+api/.git
+ui/.git

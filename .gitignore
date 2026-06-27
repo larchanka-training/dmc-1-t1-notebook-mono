@@ -49,5 +49,9 @@ docker-data/
 api/.git
 ui/.git
 
+# Graphify / Graphweave
+graphify-out/
+.graphweave/
+
 # Local research notes (not for team review)
 docs/research/

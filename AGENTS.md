@@ -59,6 +59,56 @@ GitHub Action `.github/workflows/update-submodules.yml` автоматическ
 - QA: `docs/qa/` (qa-plan, definition-of-done, acceptance-criteria)
 - CI/CD: `docs/ci-cd.md`
 
+## Graphify — Code Graph
+
+Проект использует [Graphify](https://github.com/nicholasgasior/graphify) + Graphweave для построения графа зависимостей кода. Конфиг `graphweave.yaml` в корне mono описывает репозитории (submodules) и связи между ними.
+
+### Установка
+
+```bash
+uv tool install graphify              # CLI-инструмент для построения графов
+sudo npm install -g graphweave        # Оркестратор графов для монорепо
+graphify hook install                 # Хуки для авто-обновления (в каждом репо отдельно)
+```
+
+### Команды из корня mono
+
+```bash
+graphweave up --no-register          # Построить графы для всех репозиториев
+graphweave watch                      # Следить за изменениями и обновлять графы автоматически
+```
+
+### Команды внутри submodule (api/ или ui/)
+
+```bash
+graphify update                       # Перестроить граф для текущего репозитория
+graphify hook install                 # Установить pre-commit хук для авто-обновления
+```
+
+### Структура
+
+| Файл                  | Назначение                                      |
+|-----------------------|-------------------------------------------------|
+| `graphweave.yaml`     | Конфиг Graphweave: репозитории и связи          |
+| `.graphifyignore`     | Исключения из графа (аналог .gitignore)         |
+| `.graphweave/`        | Выходные данные Graphweave (gitignored)         |
+| `graphify-out/`       | Выходные данные Graphify (gitignored)           |
+
+### Связи между репозиториями
+
+```
+ui ──consumes-api──▶ api
+api ──routed-through──▶ proxy
+```
+
+### Что исключено из графа
+
+- Документация (`.md`, `.txt`, `.rst`, `.html`)
+- Конфиги (`.yaml`, `.yml`) — кроме `graphweave.yaml`
+- Медиа (`.png`, `.jpg`, `.svg`, `.ico`)
+- Сборки (`dist/`, `node_modules/`, `__pycache__/`, `.venv/`)
+- Логи, секреты, egg-info
+
 ## Agent Workflow
 
 ### 1. Перед выполнением задачи
