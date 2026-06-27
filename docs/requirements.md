@@ -1,263 +1,276 @@
-# Requirements Document
+# Требования к проекту
 
-## Project Overview
+## Обзор проекта
 
-### Project Name
-AI JavaScript NoteBook
+### Название
+JavaScript Notebook
 
-### Goal
-Develop a web application for working with AI tools, JavaScript code, data storage and the automation of user processes.
+### Цель
+Веб-приложение для написания заметок и выполнения JavaScript-кода в ячейках блокнота (аналог Jupyter Notebook для JS). Поддержка Markdown-ячеек, AI-генерации кода, сбора аналитики.
 
-### Tech Stack
-- Frontend: JavaScript / TypeScript
-- Backend: Python
-- Database: PostgreSQL
-- AI Integration: OpenAI API, LangChain, Vector Search
-- Infrastructure: Docker, CI/CD
+### Технологический стек
+- **Фронтенд:** React 18, TypeScript 5.6, Vite 7, Redux Toolkit, Tailwind CSS 4
+- **Бэкенд:** Python 3.11, FastAPI, SQLAlchemy (async), Alembic
+- **База данных:** PostgreSQL
+- **AI:** AWS Bedrock (Claude), prompt guard, rate limiting
+- **Инфраструктура:** Docker Compose, Nginx, OpenTelemetry (Aspire)
 
 ---
 
-# Functional Requirements
+# Функциональные требования
 
-## Authentication & Authorization
+## Аутентификация и авторизация
 
-### User Authentication
-- User registration
-- User login by email/otp
-- JWT authentication
-- Refresh tokens
-- Password reset
+### Аутентификация пользователей
+- Регистрация пользователя
+- Вход по email + пароль
+- JWT-аутентификация через HttpOnly cookies
+- Refresh tokens с ротацией
+- Выход (logout) с очисткой cookies
 
-### Roles
+### Роли
 - User
 
-### Access Control
-- API authorization middleware
+### Контроль доступа
+- API authorization middleware (cookie-based)
 
 ---
 
-# Frontend Requirements
+# Требования к фронтенду
 
-## Technology
-- React
-- TypeScript
-- TailwindCSS
-- Zustand / Redux
-- Axios
+## Технологии
+- React 18
+- TypeScript 5.6
+- Tailwind CSS 4
+- Redux Toolkit
+- React Router DOM 7
+- CodeMirror 6 (редактор кода)
+- Vitest 3 (тестирование)
 
-## Features
+## Возможности
 
 ### UI
-- Responsive layout
-- Dashboard
-- Navigation sidebar
+- Адаптивный layout
+- Sidebar с навигацией
+- Переключение тёмной/светлой темы
+- Аналитический дашборд
 
-### Pages
+### Страницы
 - Login
 - Registration
-- Dashboard
-- AI Chat
-- User Settings
+- Notebook (основная страница)
+- Analytics (`/analytics`)
 
-### Validation
-- Client-side validation
-- Form error handling
+### Валидация
+- Client-side валидация форм
+- Обработка ошибок форм
 
 ---
 
-# Backend Requirements
+# Требования к бэкенду
 
-## Technology
-- Python 3.12+
+## Технологии
+- Python 3.11
 - FastAPI
-- SQLAlchemy
+- SQLAlchemy (async)
 - Alembic
 - Pydantic
 
-## API Requirements
+## API требования
 
 ### REST API
-- JSON responses
-- OpenAPI documentation
-- Versioned API (`/api/v1`)
+- JSON-ответы
+- OpenAPI документация (`/docs`)
+- Версионирование API (`/api/v1`)
 
-### Authentication API
-- POST `/auth/login`
-- POST `/auth/refresh`
-- POST `/auth/logout`
+### Auth API
+- `POST /api/v1/auth/register` — регистрация
+- `POST /api/v1/auth/login` — вход
+- `POST /api/v1/auth/logout` — выход
+- `GET /api/v1/auth/me` — текущий пользователь
+- `POST /api/v1/auth/refresh` — обновление токена
+
+### Notebooks API
+- `GET /api/v1/notebooks` — список блокнотов пользователя
+- `POST /api/v1/notebooks` — создание блокнота
+- `GET /api/v1/notebooks/{id}` — получение блокнота
+- `PUT /api/v1/notebooks/{id}` — обновление блокнота
+- `DELETE /api/v1/notebooks/{id}` — удаление блокнота
+
+### Analytics API
+- `POST /api/v1/analytics/events` — создание события аналитики
+- `GET /api/v1/analytics/dashboard` — агрегированные данные дашборда
 
 ### AI API
-- POST `/ai/chat`
-- POST `/ai/generate`
-- POST `/ai/embeddings`
-- POST `/ai/context` — сборка контекста notebook (предыдущие ячейки, markdown, код, outputs) для передачи в LLM (см. `docs/architecture/ai-notebook-context.md`)
-- POST `/ai/validate` — валидация/«починка» ответа ИИ перед выводом в Code Cell (см. `docs/architecture/ai-output-validation.md`)
-
-### User API
-- GET `/users/me`
-- PUT `/users/me`
+- `POST /api/v1/ai/generate` — генерация кода через LLM
+- `POST /api/v1/ai/context` — сборка контекста notebook (см. `docs/architecture/ai-notebook-context.md`)
+- `POST /api/v1/ai/validate` — валидация ответа ИИ (см. `docs/architecture/ai-output-validation.md`)
 
 ---
 
-# Database Requirements
+# Требования к базе данных
 
 ## PostgreSQL
 
-### Main Tables
-- users
-- sessions
-- messages
-- ai_requests
+### Основные таблицы
+- `users` — пользователи
+- `sessions` — refresh tokens
+- `notebooks` — блокноты (cells в JSONB)
+- `analytics_events` — события аналитики
 
-
-### Requirements
+### Требования
 - UUID primary keys
 - Timestamps (`created_at`, `updated_at`)
-- Soft delete support
-- Proper indexing
 - Foreign key constraints
+- Индексы на часто запрашиваемые поля
+- JSONB для cells и event_metadata
 
-### Performance
-- Query optimization
-- Connection pooling
-- Read replicas support
+### Производительность
+- Оптимизация запросов
+- Connection pooling (asyncpg)
+- Пулы соединений SQLAlchemy
 
 ---
 
-# AI Requirements
+# AI требования
 
-## AI Providers
-- OpenAI
-- Anthropic (optional)
-- Local LLM support (optional)
+## AI провайдеры
+- AWS Bedrock (Claude) — основной
+- Локальные LLM (опционально)
 
-## Features
-- Text generation
-- Embeddings
-- RAG support
-- Context memory
-- Prompt management
-
-## Vector Storage
-- pgvector extension
-- Semantic search
-- Document indexing
-
-## AI Security
+## Возможности
+- Генерация кода по описанию
+- Сборка контекста notebook для LLM
+- Валидация и «починка» ответов ИИ
+- Prompt guard (защита от injection)
 - Rate limiting
+
+## AI безопасность
+- Rate limiting на пользователя
 - Prompt injection protection
-- Request logging
-- Token usage tracking
+- Логирование запросов
+- Учёт попыток генерации
 
 ---
 
-# Non-Functional Requirements
+# Нефункциональные требования
 
-## Performance
-- API response < 300ms for standard requests
-- AI response streaming
-- Support 10k+ concurrent users
+## Производительность
+- Время ответа API < 300ms для стандартных запросов
+- Streaming AI-ответов
+- Поддержка 10k+ одновременных пользователей
 
-## Security
-- HTTPS only
+## Безопасность
+- HTTPS only (в production)
 - Secure headers
-- CSRF protection
-- SQL injection prevention
-- Secrets management
+- HttpOnly cookies для токенов
+- SQL injection prevention (параметризованные запросы)
+- Управление секретами (см. `docs/dev-ops/secrets-management.md`)
 
-## Scalability
-- Horizontal scaling
+## Масштабируемость
+- Горизонтальное масштабирование
 - Stateless backend
-- Queue system support
+- Поддержка очередей
 
-## Reliability
+## Надёжность
 - Health checks
-- Retry policies
+- Structured JSON logging
+- OpenTelemetry tracing
 - Error monitoring
-- Structured logging
 
 ---
 
-# DevOps Requirements
+# DevOps требования
 
-## Containerization
+## Контейнеризация
 - Docker support
-- docker-compose for local development
+- docker-compose для локальной разработки
 
 ## CI/CD
 - GitHub Actions
-- Automated tests
+- Автоматические тесты
 - Linting
-- Deployment pipeline
+- Deployment pipeline (AWS ECS)
 
-## Environments
-- local
-- staging
-- production
-
----
-
-# Testing Requirements
-
-## Frontend Testing
-- Unit tests
-- Component tests
-- E2E tests
-
-## Backend Testing
-- Unit tests
-- Integration tests
-- API tests
-
-## Coverage
-- Minimum 80% coverage
+## Окружения
+- local (Docker Compose)
+- production (AWS ECS)
 
 ---
 
-# Monitoring & Observability
+# Требования к тестированию
 
-## Logging
+## Фронтенд
+- Unit тесты (Vitest)
+- Component тесты (Vitest + jsdom)
+- E2E тесты (Playwright, опционально)
+
+## Бэкенд
+- Unit тесты (pytest)
+- Integration тесты (pytest + async)
+- API тесты (pytest + httpx)
+
+## Покрытие
+- Минимум 80% coverage
+
+---
+
+# Мониторинг и наблюдаемость
+
+## Логирование
 - Structured JSON logs
-- Request tracing
+- Request tracing (OpenTelemetry)
 
-## Monitoring
-- Prometheus
-- Grafana
+## Мониторинг
+- Aspire Dashboard (локально)
+- CloudWatch (production)
 
-## Error Tracking
-- Sentry
+## Отслеживание ошибок
+- Sentry (опционально)
 
 ---
 
-# Project Structure
+# Структура проекта
 
-## Frontend
-```txt
+## Фронтенд
+```text
 ui/
 ├── src/
-├── components/
-├── pages/
-├── services/
-├── hooks/
-└── tests/
-```
-## Backend
-```txt
-api/
-├── app/
-├── api/
-├── services/
-├── models/
-├── repositories/
-├── ai/
-└── tests/
+│   ├── app/          # Корневой компонент, роутер, Redux store
+│   ├── features/     # Feature-модули (notebook, auth, analytics)
+│   └── shared/       # apiClient, утилиты
+├── tests/
+└── package.json
 ```
 
-## Environment Variables
-### Backend
-    DATABASE_URL=
-    OPENAI_API_KEY=
+## Бэкенд
+```text
+api/
+├── app/
+│   ├── api/v1/endpoints/  # FastAPI endpoints
+│   ├── ai/                # AI generation
+│   ├── db/models/         # SQLAlchemy модели
+│   ├── schemas/           # Pydantic схемы
+│   └── core/              # config, security
+├── alembic/               # Миграции
+├── tests/                 # pytest
+└── requirements.txt
+```
+
+## Переменные окружения
+### Бэкенд (`api/.env`)
+    DATABASE_URL=postgresql+asyncpg://...
     JWT_SECRET=
-    REDIS_URL=
-### Frontend
-    NEXT_PUBLIC_API_URL=
+    JWT_ALGORITHM=HS256
+    ACCESS_TOKEN_TTL_SECONDS=900
+    SESSION_TTL_SECONDS=604800
+    COOKIE_DOMAIN=
+    SECURE_COOKIES=false
+    AI_ENABLED=true
+    AWS_REGION=
+    AWS_ACCESS_KEY_ID=
+    AWS_SECRET_ACCESS_KEY=
+    BEDROCK_MODEL_ID=
+
+### Фронтенд (`ui/.env`)
+    VITE_API_PROXY_TARGET=http://localhost:8000

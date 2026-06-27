@@ -1,17 +1,17 @@
-# Architecture Overview
+# Обзор архитектуры
 
-## Project Information
+## Информация о проекте
 
-- **Project Name:** JavaScript NoteBook
-- **Frontend:** JavaScript / TypeScript (React)
-- **Backend:** Python (FastAPI)
-- **Database:** PostgreSQL
-- **Deployment:** Docker + Kubernetes
-- **Cloud Provider:** AWS
+- **Название:** JavaScript Notebook
+- **Фронтенд:** React 18 + TypeScript 5.6 (Vite 7)
+- **Бэкенд:** Python 3.11, FastAPI
+- **База данных:** PostgreSQL
+- **Инфраструктура:** Docker Compose, Nginx, OpenTelemetry (Aspire)
+- **Облако:** AWS
 
 ---
 
-# High Level Architecture
+# Архитектура верхнего уровня
 
 ```text
         ┌─────────────────────┐
@@ -24,7 +24,7 @@
 ┌─────────────────────┐ ┌─────────────────────┐
 │    Python Backend   │ │     Frontend        │
 │ FastAPI Application │ │       React         │
-└────┬────────────┬───┘ └─────────────────────┘
+└─────┬───────────┬───┘ └─────────────────────┘
      │            │
      ▼            ▼
 ┌────────────┐ ┌────────────┐
@@ -33,95 +33,123 @@
 └────────────┘ └────────────┘
 ```
 
-## Frontend Architecture
-### Technology Stack
-| Component | Technology |
+## Архитектура фронтенда
+### Технологический стек
+| Компонент | Технология |
 | --- | --- |
-| Framework | React |
-| State Management | Redux |
-| Routing | React Router |
-| Language | TypeScript |
-| UI Library | TailwindCSS |
-| API Client | Axios / Fetch |
-| Build Tool | Vite |
+| Фреймворк | React 18 |
+| Управление состоянием | Redux Toolkit |
+| Маршрутизация | React Router DOM 7 |
+| Язык | TypeScript 5.6 |
+| UI библиотека | Tailwind CSS 4 |
+| API клиент | Fetch (с credentials: include) |
+| Сборка | Vite 7 |
+| Редактор кода | CodeMirror 6 |
+| Markdown | react-markdown + remark-gfm |
+| Тестирование | Vitest 3 |
 
-### Frontend Structure
+### Структура фронтенда
 ```text
 ui/
 ├── src/
-│   ├── api/
-│   ├── components/
-│   ├── pages/
-│   ├── hooks/
-│   ├── store/
-│   ├── layouts/
-│   ├── utils/
-│   ├── styles/
-│   └── types/
+│   ├── app/              # Корневой компонент, роутер, Redux store
+│   ├── features/         # Feature-модули (notebook, auth, analytics)
+│   │   ├── notebook/
+│   │   │   ├── api/      # notebookService
+│   │   │   ├── lib/      # Web Worker, fakeKernel, fakeAiCodegen
+│   │   │   ├── model/    # Redux slice, thunks, selectors, types
+│   │   │   └── ui/       # React компоненты
+│   │   ├── auth/         # Auth context, authService
+│   │   └── analytics/    # Analytics service, useAnalytics, dashboard
+│   └── shared/           # apiClient, утилиты, переиспользуемые UI
 ├── public/
 ├── tests/
 └── package.json
 ```
 
-### Frontend Principles
-* Component-based architecture
-* Reusable UI components
-* Separation of business logic and presentation
-* Centralized API layer
-* Type-safe interfaces
-* Lazy loading for pages/modules
+### Принципы фронтенда
+* Feature-based архитектура (модули по доменам)
+* Переиспользуемые UI компоненты в `shared/`
+* Разделение бизнес-логики и представления
+* Централизованный API слой (`apiClient.ts`)
+* Типобезопасные интерфейсы (TypeScript)
+* Web Worker для изолированного выполнения JS
 
-## Backend Architecture
-### Technology Stack
-| Component | Technology |
-| --- |------------|
-| Framework | FastAPI    |
-| ORM | SQLAlchemy |
-| Authentication | JWT + OPT  |
+## Архитектура бэкенда
+### Технологический стек
+| Компонент | Технология |
+| --- | --- |
+| Фреймворк | FastAPI |
+| ORM | SQLAlchemy (async) |
+| Аутентификация | JWT + HttpOnly cookies |
+| Миграции | Alembic |
+| Валидация | Pydantic |
+| Логирование | Structured JSON logging |
+| Телеметрия | OpenTelemetry |
 
-### Backend Structure
+### Структура бэкенда
 ```text
 api/
 ├── app/
-│   ├── api/
-│   ├── services/
-│   ├── repositories/
-│   ├── models/
-│   ├── schemas/
-│   ├── middleware/
-│   ├── core/
-│   ├── workers/
-│   └── utils/
-├── tests/
-├── alembic/
+│   ├── api/v1/endpoints/  # FastAPI endpoints (auth, notebooks, analytics, ai)
+│   ├── ai/                # AI generation (bedrock, rate_limit, prompt_guard)
+│   ├── db/models/         # SQLAlchemy модели
+│   ├── schemas/           # Pydantic схемы
+│   ├── core/              # config, security, deps
+│   └── main.py            # Точка входа
+├── alembic/               # Миграции БД
+├── tests/                 # pytest
 └── requirements.txt
 ```
 
-### Backend Layers
-#### API Layer Responsible for:
+### Слои бэкенда
+#### API слой (endpoints)
 * HTTP endpoints
-* Request validation
-* Response serialization
-* Authentication
-#### Service Layer Responsible for:
-* Business logic
-* Transactions
-* Domain rules
-#### Repository Layer Responsible for:
-* Database access
-* Query abstraction
-* ORM operations
+* Валидация запросов (Pydantic)
+* Сериализация ответов
+* Аутентификация (cookie-based JWT)
+#### Сервисный слой
+* Бизнес-логика
+* Транзакции
+* Доменные правила
+#### Слой данных (models + SQLAlchemy)
+* Доступ к БД через async SQLAlchemy
+* ORM-модели: User, Session, Notebook, AnalyticsEvent
 
-## Database Architecture
-### PostgreSQL (Main Principles)
-* ID primary keys
-* Normalized schema
+## Архитектура базы данных
+### PostgreSQL (основные принципы)
+* UUID primary keys
+* Нормализованная схема
 * Foreign key constraints
-* Indexed frequently queried fields
-* Soft delete support where required
+* Индексы на часто запрашиваемые поля
+* JSONB для event metadata (analytics)
 
-### Migration Strategy
-* Alembic migrations
-* One migration per feature
-* Backward compatible changes
-* Rollback support
+### Модели
+| Модель | Описание |
+| --- | --- |
+| `User` | Пользователи (email, password_hash, display_name) |
+| `Session` | Refresh tokens (token_hash, expires_at) |
+| `Notebook` | Блокноты (user_id, title, cells JSONB) |
+| `AnalyticsEvent` | События аналитики (user_id, event_type, event_metadata JSONB) |
+
+### Стратегия миграций
+* Alembic миграции
+* Одна миграция на фичу
+* Обратная совместимость
+* Поддержка rollback
+
+---
+
+## Дополнительные материалы
+
+- [Архитектура исполнения кода](architecture/execution-architecture.md)
+- [Web Worker Execution Engine](architecture/web-worker-execution-engine.md)
+- [Модель блокнота](architecture/notebook-model.md)
+- [AI генерация кода](architecture/ai-generation.md)
+- [Контекст Notebook для LLM](architecture/ai-notebook-context.md)
+- [Валидация ответов ИИ](architecture/ai-output-validation.md)
+- [Browser LLM](architecture/browser-llm.md)
+- [Аналитика](architecture/analytics.md)
+- [Аутентификация](guides/auth.md)
+- [Локальная настройка](guides/local-setup.md)
+- [Reverse Proxy](Local-Proxy.md)
