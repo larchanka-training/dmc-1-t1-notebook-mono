@@ -174,3 +174,45 @@ docker compose down
 Проверьте:
 - что контейнер найден (имя совпадает с ожидаемым),
 - что зависимости установились корректно.
+
+---
+
+## Разработка без Docker (uvicorn + vite dev напрямую)
+
+Иногда удобно запустить backend и frontend напрямую, без Docker — для отладки или быстрой разработки.
+
+### Backend (FastAPI)
+
+```bash
+cd api
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+alembic upgrade head
+fastapi dev app/main.py --host 0.0.0.0 --port 8000
+```
+
+### Frontend (Vite)
+
+```bash
+cd ui
+npm ci
+npm run dev
+```
+
+Vite запустится на `http://localhost:5173`, API — на `http://localhost:8000`.
+Vite proxy автоматически перенаправляет `/api` запросы на backend.
+
+### COOKIE_DOMAIN для non-Docker
+
+При запуске без Docker (через `localhost:5173` + `localhost:8000`):
+- Установите `COOKIE_DOMAIN=` (пустая строка) в `api/.env`
+- Браузер привяжет cookie к `localhost`
+- Если оставить `COOKIE_DOMAIN=.notebook.com`, браузер **не примет** cookie — домен не совпадает с хостом
+
+### Адреса (non-Docker)
+
+| Сервис | URL |
+|--------|-----|
+| Frontend | http://localhost:5173 |
+| API | http://localhost:8000 |
+| API docs | http://localhost:8000/docs |
