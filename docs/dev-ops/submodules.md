@@ -82,3 +82,42 @@ git clone --recurse-submodules <url>
 # или после обычного clone:
 git submodule update --init --recursive
 ```
+
+---
+
+## Graphify / Graphweave
+
+Монорепо использует [Graphify](https://github.com/nicholasgasior/graphify) + Graphweave
+для построения графа зависимостей кода.
+
+### Конфигурация
+
+| Файл | Назначение |
+|---|---|
+| `graphweave.yaml` | Конфиг Graphweave: репозитории и связи |
+| `.graphifyignore` | Исключения из графа (в mono, api, ui) |
+| `.graphweave/` | Выходные данные Graphweave (gitignored) |
+| `graphify-out/` | Выходные данные Graphify (gitignored) |
+
+### Связи между репозиториями
+
+```
+ui ──consumes-api──▶ api
+api ──routed-through──▶ proxy
+```
+
+### Команды из корня mono
+
+```bash
+graphweave up --no-register    # Построить графы для всех репозиториев
+graphweave watch               # Следить за изменениями
+```
+
+### Команды внутри submodule
+
+```bash
+graphify update                # Перестроить граф для текущего репо
+graphify hook install          # Установить pre-commit хук
+```
+
+Подробнее — в `AGENTS.md` монорепозитория.
