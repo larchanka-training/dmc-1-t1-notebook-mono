@@ -97,6 +97,13 @@ make up
 - [Acceptance Criteria Template](docs/qa/acceptance-criteria-template.md)
 - [Bug Reporting Guide](docs/qa/bug-reporting-guide.md)
 
+### Отчёты
+
+- [Performance Report](docs/performance-report.md)
+- [Security Review](docs/security-review.md)
+- [Cost Analysis](docs/cost-analysis.md)
+- [Launch Presentation](docs/launch-presentation.md)
+
 ---
 
 ## Code Graph (Graphify + Graphweave)
