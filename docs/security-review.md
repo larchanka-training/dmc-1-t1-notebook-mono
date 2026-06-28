@@ -1,4 +1,4 @@
-# Security Review
+# Security Review (Аудит безопасности)
 
 > Issue [#179](https://github.com/larchanka-training/js-notebook/issues/179) — Security Audit
 

@@ -1,4 +1,4 @@
-# Cost Analysis
+# Cost Analysis (Анализ затрат)
 
 > Issue [#177](https://github.com/larchanka-training/js-notebook/issues/177) — Cost Optimization
 

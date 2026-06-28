@@ -1,4 +1,4 @@
-# Release Certification Report
+# Release Certification Report (Отчёт о сертификации релиза)
 
 > Issue [#176](https://github.com/larchanka-training/js-notebook/issues/176) — QA Release Certification
 

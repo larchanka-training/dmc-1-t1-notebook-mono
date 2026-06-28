@@ -1,4 +1,4 @@
-# Disaster Recovery Runbook
+# Disaster Recovery Runbook (Runbook восстановления)
 
 > Issue [#175](https://github.com/larchanka-training/js-notebook/issues/175) — DevOps Disaster Recovery Plan
 

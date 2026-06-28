@@ -1,4 +1,4 @@
-# Automation Test Strategy
+# Automation Test Strategy (Стратегия автоматизации тестирования)
 
 > Issue [#48](https://github.com/larchanka-training/js-notebook/issues/48) — Create Automation test strategy
 

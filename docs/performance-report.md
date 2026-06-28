@@ -1,4 +1,4 @@
-# Performance Report
+# Performance Report (Отчёт о производительности)
 
 > Issue [#178](https://github.com/larchanka-training/js-notebook/issues/178) — Performance Investigation
 
