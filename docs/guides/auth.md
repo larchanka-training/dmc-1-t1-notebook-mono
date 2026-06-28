@@ -1,27 +1,27 @@
-# Authentication
+# Аутентификация
 
-## Overview
+## Обзор
 
-The API uses **JWT-based authentication delivered via HttpOnly cookies**. There is no `Authorization: Bearer` header — all tokens live in cookies, making them inaccessible to JavaScript and resistant to XSS.
+API использует **JWT-аутентификацию через HttpOnly cookies**. Заголовок `Authorization: Bearer` не используется — все токены хранятся в cookies, что делает их недоступными для JavaScript и устойчивыми к XSS.
 
-Two tokens are issued on every login or register:
+При каждом входе или регистрации выдаются два токена:
 
-| Cookie | TTL | Purpose |
+| Cookie | TTL | Назначение |
 |---|---|---|
-| `access_token` | 15 min | Authenticate API requests via `GET /me`, etc. |
-| `refresh_token` | 7 days | Obtain a new `access_token` without re-logging in |
+| `access_token` | 15 мин | Аутентификация API-запросов (`GET /me`, и т.д.) |
+| `refresh_token` | 7 дней | Получение нового `access_token` без повторного входа |
 
 ---
 
-## Cookie configuration
+## Конфигурация cookies
 
-All auth cookies are set with:
+Все auth-cookies устанавливаются с:
 
 ```
-HttpOnly: true     — not readable by JS
-Secure:   <env>    — see SECURE_COOKIES below
-SameSite: Lax      — sent on same-site + top-level cross-site GETs
-Domain:   <env>    — see COOKIE_DOMAIN below
+HttpOnly: true     — недоступен для JS
+Secure:   <env>    — см. SECURE_COOKIES ниже
+SameSite: Lax      — отправляется на same-site + top-level cross-site GET
+Domain:   <env>    — см. COOKIE_DOMAIN ниже
 ```
 
 ---
@@ -30,9 +30,9 @@ Domain:   <env>    — see COOKIE_DOMAIN below
 
 ### `POST /api/v1/auth/register`
 
-Create a new account. Sets both cookies on success.
+Создание нового аккаунта. Устанавливает оба cookie при успехе.
 
-**Request body**
+**Тело запроса**
 ```json
 {
   "email": "user@example.com",
@@ -41,11 +41,11 @@ Create a new account. Sets both cookies on success.
 }
 ```
 
-Validation rules:
-- `password` — minimum 8 characters
-- `display_name` — optional; defaults to the email address if omitted
+Правила валидации:
+- `password` — минимум 8 символов
+- `display_name` — опционально; по умолчанию используется email
 
-**Response `201`**
+**Ответ `201`**
 ```json
 {
   "id": "uuid",
@@ -55,133 +55,138 @@ Validation rules:
 }
 ```
 
-Errors: `409 Conflict` if email is already registered.
+Ошибки: `409 Conflict` если email уже зарегистрирован.
 
 ---
 
 ### `POST /api/v1/auth/login`
 
-Authenticate with email + password. Sets both cookies on success.
+Аутентификация по email + пароль. Устанавливает оба cookie при успехе.
 
-**Request body**
+**Тело запроса**
 ```json
 { "email": "user@example.com", "password": "atleast8chars" }
 ```
 
-**Response `200`** — same shape as register.
+**Ответ `200`** — та же структура, что при регистрации.
 
-Errors: `401 Unauthorized` for invalid credentials (generic message, no user enumeration).
+Ошибки: `401 Unauthorized` при неверных учётных данных (общее сообщение, без раскрытия существования пользователя).
 
 ---
 
 ### `POST /api/v1/auth/logout`
 
-Deletes the server-side session row for the current refresh token and clears both cookies.
+Удаляет серверную запись сессии для текущего refresh token и очищает оба cookie.
 
-- No body required.
-- Idempotent: safe to call even if no session exists.
-- **Response `204 No Content`**
+- Тело не требуется.
+- Идемпотентный: безопасно вызывать даже без активной сессии.
+- **Ответ `204 No Content`**
 
 ---
 
 ### `GET /api/v1/auth/me`
 
-Returns the currently authenticated user. Reads the `access_token` cookie.
+Возвращает текущего аутентифицированного пользователя. Читает cookie `access_token`.
 
-**Response `200`** — same `UserResponse` shape.
+**Ответ `200`** — та же структура `UserResponse`.
 
-Errors: `401 Unauthorized` if cookie is missing, invalid, or expired.
+Ошибки: `401 Unauthorized` если cookie отсутствует, невалиден или истёк.
 
 ---
 
 ### `POST /api/v1/auth/refresh`
 
-Issues a new `access_token` (and rotates the `refresh_token`) using the `refresh_token` cookie.
+Выдаёт новый `access_token` (и ротирует `refresh_token`) используя cookie `refresh_token`.
 
-- The old refresh token is deleted from the database (rotation prevents replay).
-- Both cookies are updated in the response.
-- **Response `200`** — same `UserResponse` shape.
+- Старый refresh token удаляется из БД (ротация предотвращает повторное использование).
+- Оба cookie обновляются в ответе.
+- **Ответ `200`** — та же структура `UserResponse`.
 
-Errors: `401 Unauthorized` if the refresh token is missing, expired, or already used.
+Ошибки: `401 Unauthorized` если refresh token отсутствует, истёк или уже использован.
 
 ---
 
-## Token flow
+## Поток токенов
 
 ```
-Browser                          API
+Браузер                          API
   │                               │
   │── POST /auth/login ──────────►│
-  │                               │  verify password
-  │                               │  create access_token  (JWT, 15min)
-  │                               │  create refresh_token (opaque, 7d)
-  │                               │  store SHA-256(refresh_token) in sessions table
+  │                               │  проверка пароля
+  │                               │  создание access_token  (JWT, 15мин)
+  │                               │  создание refresh_token (opaque, 7д)
+  │                               │  сохранение SHA-256(refresh_token) в sessions
   │◄─ Set-Cookie: access_token ───│
   │◄─ Set-Cookie: refresh_token ──│
   │                               │
-  │── GET /auth/me ──────────────►│  reads access_token cookie
+  │── GET /auth/me ──────────────►│  читает cookie access_token
   │◄─ 200 UserResponse ───────────│
   │                               │
-  │  [15 min later, access expires]
+  │  [через 15 мин access истекает]
   │                               │
-  │── POST /auth/refresh ────────►│  reads refresh_token cookie
-  │                               │  validates SHA-256(token) against sessions row
-  │                               │  deletes old session row (rotation)
-  │                               │  creates new session row
-  │◄─ Set-Cookie: access_token ───│  new 15-min access token
-  │◄─ Set-Cookie: refresh_token ──│  new 7-day refresh token
+  │── POST /auth/refresh ────────►│  читает cookie refresh_token
+  │                               │  проверка SHA-256(token) по sessions
+  │                               │  удаление старой записи (ротация)
+  │                               │  создание новой записи
+  │◄─ Set-Cookie: access_token ───│  новый access на 15 мин
+  │◄─ Set-Cookie: refresh_token ──│  новый refresh на 7 дней
   │                               │
-  │── POST /auth/logout ─────────►│  reads refresh_token cookie
-  │                               │  deletes session row
-  │◄─ 204 + cleared cookies ──────│
+  │── POST /auth/logout ─────────►│  читает cookie refresh_token
+  │                               │  удаляет запись сессии
+  │◄─ 204 + очищенные cookies ────│
 ```
 
 ---
 
-## Refresh token storage
+## Хранение refresh token
 
-Refresh tokens are **opaque random strings** (48-byte URL-safe base64). The raw value is sent in the cookie; the API stores only `SHA-256(raw)` in the `sessions` table. This means a database breach does not expose usable tokens.
+Refresh tokens — **непрозрачные случайные строки** (48 байт, URL-safe base64). Сырое значение отправляется в cookie; API хранит только `SHA-256(сырое)` в таблице `sessions`. Это означает, что утечка БД не раскрывает пригодные к использованию токены.
 
-| Column | Notes |
+| Колонка | Описание |
 |---|---|
 | `id` | UUID PK |
 | `user_id` | FK → users.id (CASCADE DELETE) |
-| `token_hash` | SHA-256 hex, 64 chars, unique index |
+| `token_hash` | SHA-256 hex, 64 символа, unique index |
 | `expires_at` | UTC timestamp |
-| `created_at` | auto |
+| `created_at` | авто |
 
 ---
 
-## User model
+## Модель пользователя
 
-| Column | Type | Notes |
+| Колонка | Тип | Описание |
 |---|---|---|
 | `id` | UUID | PK, default uuid4 |
 | `email` | varchar(255) | unique, indexed |
 | `password_hash` | varchar(255) | bcrypt |
-| `display_name` | varchar(255) | nullable; falls back to email in responses |
+| `display_name` | varchar(255) | nullable; fallback на email в ответах |
 | `created_at` | timestamptz | server default now() |
 
-Passwords are hashed with **bcrypt** (the `bcrypt` package directly — passlib is not used due to a compatibility issue between passlib 1.7 and bcrypt 4.x). The plain-text password is never stored or logged.
+Пароли хешируются с помощью **bcrypt** (пакет `bcrypt` напрямую — passlib не используется из-за несовместимости passlib 1.7 и bcrypt 4.x). Открытый пароль никогда не сохраняется и не логируется.
 
 ---
 
-## Configuration
+## Конфигурация
 
-| Variable | Default | Description |
+| Переменная | По умолчанию | Описание |
 |---|---|---|
-| `JWT_SECRET` | *(weak dev default)* | **Must be overridden in production.** Used to sign access tokens. |
-| `JWT_ALGORITHM` | `HS256` | JWT signing algorithm |
-| `ACCESS_TOKEN_TTL_SECONDS` | `900` | 15 minutes |
-| `SESSION_TTL_SECONDS` | `604800` | 7 days (refresh token lifetime) |
-| `COOKIE_DOMAIN` | `""` (empty) | Cookie `Domain` attribute. Empty = scoped to the current host. Set to `.notebook.com` for local dev (already set in `docker-compose.yaml`). |
-| `SECURE_COOKIES` | `false` | Set `true` when the app is served over HTTPS. Local dev uses HTTPS via the proxy but `false` still works. Set `true` in ECS once HTTPS is configured on the ALB. |
+| `JWT_SECRET` | *(слабый dev-default)* | **Должен быть переопределён в production.** Используется для подписи access tokens. |
+| `JWT_ALGORITHM` | `HS256` | Алгоритм подписи JWT |
+| `ACCESS_TOKEN_TTL_SECONDS` | `900` | 15 минут |
+| `SESSION_TTL_SECONDS` | `604800` | 7 дней (срок жизни refresh token) |
+| `COOKIE_DOMAIN` | `""` (пусто) | Атрибут `Domain` cookie. Пустая строка = cookie привязан к текущему хосту. |
+| `SECURE_COOKIES` | `false` | `true` когда приложение обслуживается по HTTPS. |
+
+### COOKIE_DOMAIN для локальной разработки
+
+- **Docker Compose (через proxy):** `COOKIE_DOMAIN=.notebook.com` — cookie доступны на всех поддоменах `notebook.com`.
+- **Без Docker (uvicorn + vite dev напрямую):** `COOKIE_DOMAIN=` (пустая строка) — cookie привязан к `localhost`. Если установить `.notebook.com`, браузер **не примет** cookie, т.к. домен запроса не совпадает.
 
 ---
 
-## Frontend auth integration
+## Интеграция аутентификации на фронтенде
 
-Auth state is managed by `AuthProvider` (`ui/src/features/auth/model/authContext.tsx`), which wraps the entire app. It exposes a `useAuth()` hook returning:
+Состояние аутентификации управляется `AuthProvider` (`ui/src/features/auth/model/authContext.tsx`), который оборачивает всё приложение. Он предоставляет хук `useAuth()`:
 
 ```ts
 {
@@ -193,40 +198,40 @@ Auth state is managed by `AuthProvider` (`ui/src/features/auth/model/authContext
 }
 ```
 
-**Session restore on load** — on mount, `AuthProvider` calls `GET /auth/me`. If the cookie is still valid the user is silently restored; if not, `status` becomes `unauthenticated`. An `AbortController` is used so that React 18 StrictMode's double-mount only results in one completed request.
+**Восстановление сессии при загрузке** — при монтировании `AuthProvider` вызывает `GET /auth/me`. Если cookie валиден, пользователь тихо восстанавливается; если нет — `status` становится `unauthenticated`. Используется `AbortController`, чтобы двойной монтирование в React 18 StrictMode не приводило к дублированию запросов.
 
-**UI states driven by `status`:**
+**UI-состояния в зависимости от `status`:**
 
-| `status` | What the user sees |
+| `status` | Что видит пользователь |
 |---|---|
-| `"loading"` | Full-screen spinner while the `/me` check is in flight |
-| `"unauthenticated"` | Sidebar with no notebooks + centred placeholder with "Sign in / Sign up" button |
-| `"authenticated"` | Full notebook experience; notebooks load and navigate to the most recent one |
+| `"loading"` | Полноэкранный спиннер во время проверки `/me` |
+| `"unauthenticated"` | Sidebar без блокнотов + центрированный placeholder с кнопкой "Sign in / Sign up" |
+| `"authenticated"` | Полноценный notebook-интерфейс; блокноты загружаются, навигация к последнему |
 
-**Automatic token refresh** — `apiClient` intercepts every `401` response and attempts a silent refresh before surfacing the error to the caller:
+**Автоматическое обновление токена** — `apiClient` перехватывает каждый ответ `401` и пытается тихо обновить токен перед тем, как показать ошибку вызывающему:
 
-1. The failing request gets a `401`.
-2. `apiClient` calls `POST /auth/refresh` (at most once at a time — concurrent 401s share a single in-flight refresh via a module-level promise).
-3. If refresh succeeds the original request is retried transparently.
-4. If refresh fails (refresh token expired or revoked), a `auth:session-expired` DOM event is dispatched and `AuthProvider` transitions to `unauthenticated`, returning the user to the sign-in screen.
+1. Запрос получает `401`.
+2. `apiClient` вызывает `POST /auth/refresh` (максимум один за раз — параллельные 401 разделяют один in-flight refresh через module-level promise).
+3. Если refresh успешен, исходный запрос повторяется прозрачно.
+4. Если refresh не удался (refresh token истёк или отозван), диспатчится DOM-событие `auth:session-expired` и `AuthProvider` переходит в `unauthenticated`.
 
-Endpoints that never trigger a refresh retry: `/auth/login`, `/auth/register`, `/auth/logout` — a `401` from those means wrong credentials, not an expired token.
+Endpoints, которые никогда не запускают retry refresh: `/auth/login`, `/auth/register`, `/auth/logout` — `401` от них означает неверные учётные данные, а не истёкший токен.
 
 ---
 
-## Database migrations
+## Миграции базы данных
 
-Run migrations with Alembic from the `api/` directory:
+Запуск миграций через Alembic из директории `api/`:
 
 ```bash
-# Apply all pending migrations
+# Применить все ожидающие миграции
 alembic upgrade head
 
-# Roll back one step
+# Откатить одну миграцию
 alembic downgrade -1
 
-# Auto-generate a new migration after model changes
-alembic revision --autogenerate -m "describe the change"
+# Авто-генерация новой миграции после изменения моделей
+alembic revision --autogenerate -m "описание изменения"
 ```
 
-The first migration (`0001`) creates the `users` and `sessions` tables.
+Первая миграция (`0001`) создаёт таблицы `users` и `sessions`. Миграция `0003` добавляет `analytics_events`.

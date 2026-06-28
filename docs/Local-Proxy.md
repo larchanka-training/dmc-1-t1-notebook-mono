@@ -2,7 +2,7 @@
 
 ## 1. Общая информация
 
-Проект использует [**Nginx** как **reverse-proxy**](https://github.com/larchanka-training/python-typescript-wiki/blob/5fb06aecf7fa8bc8dbbb1bf0e3e38be20a0e10ca/docker-compose.yaml#L61) для маршрутизации трафика к разным сервисам внутри локальной сети Docker. Reverse-proxy выполняет следующие функции:
+Проект использует [**Nginx** как **reverse-proxy**](https://github.com/larchanka-training/dmc-1-t1-notebook-mono/blob/main/docker-compose.yaml) для маршрутизации трафика к разным сервисам внутри локальной сети Docker. Reverse-proxy выполняет следующие функции:
 
 - Прокси для приложений и API.
 - Обеспечение SSL шифрования через самоподписанный сертификат.
@@ -13,13 +13,13 @@
 
 |Домен|Прокси на|Порт приложения|
 |---|---|---|
-|`training.wiki`|Frontend-приложение|3000|
-|`api.training.wiki`|API|8000|
-|`pgadmin.training.wiki`|pgAdmin|5050|
+|`notebook.com`|Frontend-приложение|3000|
+|`api.notebook.com`|API|8000|
+|`pgadmin.notebook.com`|pgAdmin|5050|
 
 ---
 
-## 2. [Dockerfile](https://github.com/larchanka-training/python-typescript-wiki/blob/main/proxy/Dockerfile)
+## 2. [Dockerfile](https://github.com/larchanka-training/dmc-1-t1-notebook-mono/blob/main/proxy/Dockerfile)
 
 Dockerfile создаёт контейнер с Nginx и настраивает SSL:
 
@@ -32,13 +32,13 @@ RUN apk update && apk add bash openssl
 
 RUN mkdir /keys  # Создание директории для ключей
 
-RUN openssl genrsa -out /keys/training.wiki-key.pem 2048  # Генерация приватного ключа
+RUN openssl genrsa -out /keys/notebook.com-key.pem 2048  # Генерация приватного ключа
 
 RUN openssl req -x509 -new -nodes -batch \ # Генерация самоподписанного сертификата
-	-key /keys/training.wiki-key.pem \
+	-key /keys/notebook.com-key.pem \
 	-sha256 -days 365 \
-	-subj "/CN=training.wiki" \
-	-out /keys/training.wiki.pem
+	-subj "/CN=notebook.com" \
+	-out /keys/notebook.com.pem
 
 ```
 
@@ -51,7 +51,7 @@ RUN openssl req -x509 -new -nodes -batch \ # Генерация самоподп
 
 ---
 
-## 3. Конфигурация Nginx ([`nginx.conf`](https://github.com/larchanka-training/python-typescript-wiki/blob/main/proxy/nginx.conf))
+## 3. Конфигурация Nginx ([`nginx.conf`](https://github.com/larchanka-training/dmc-1-t1-notebook-mono/blob/main/proxy/nginx.conf))
 
 ### 3.1 Основные параметры
 
@@ -98,10 +98,10 @@ upstream pgadmin {
 server {
   listen 80;
   listen 443 ssl;
-  server_name training.wiki;
+  server_name notebook.com;
 
-  ssl_certificate /keys/training.wiki.pem;
-  ssl_certificate_key /keys/training.wiki-key.pem;
+  ssl_certificate /keys/notebook.com.pem;
+  ssl_certificate_key /keys/notebook.com-key.pem;
 
   location / {
       proxy_pass http://app;
@@ -120,10 +120,10 @@ server {
 server {
   listen 80;
   listen 443 ssl;
-  server_name api.training.wiki;
+  server_name api.notebook.com;
 
-  ssl_certificate /keys/training.wiki.pem;
-  ssl_certificate_key /keys/training.wiki-key.pem;
+  ssl_certificate /keys/notebook.com.pem;
+  ssl_certificate_key /keys/notebook.com-key.pem;
 
   location / {
       proxy_pass http://api;
@@ -142,10 +142,10 @@ server {
 server {
   listen 80;
   listen 443 ssl;
-  server_name pgadmin.training.wiki;
+  server_name pgadmin.notebook.com;
 
-  ssl_certificate /keys/training.wiki.pem;
-  ssl_certificate_key /keys/training.wiki-key.pem;
+  ssl_certificate /keys/notebook.com.pem;
+  ssl_certificate_key /keys/notebook.com-key.pem;
 
   location / {
       proxy_pass http://pgadmin;
@@ -170,8 +170,8 @@ server {
 
 1. Контейнер Nginx обслуживает все запросы на порты 80 (HTTP) и 443 (HTTPS) для разных поддоменов.
 2. Все сервисы доступны по поддоменам:
-    - `training.wiki` → frontend
-    - `api.training.wiki` → API
-    - `pgadmin.training.wiki` → pgAdmin
+    - `notebook.com` → frontend
+    - `api.notebook.com` → API
+    - `pgadmin.notebook.com` → pgAdmin
 3. Используется **самоподписанный SSL сертификат**, поэтому браузеры могут выдавать предупреждение при локальном доступе.
 4. Для продакшена рекомендуется заменить сертификат на подписанный CA (например, Let's Encrypt).

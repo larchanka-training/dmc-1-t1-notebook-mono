@@ -1,4 +1,4 @@
-# AI Generation Service
+# Сервис AI-генерации кода
 
 > Engineer #2 / Engineer #5. Бэкенд: `api/app/ai/bedrock.py`, `rate_limit.py`, `prompt_guard.py`.
 
