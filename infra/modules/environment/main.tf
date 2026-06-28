@@ -32,6 +32,22 @@ resource "aws_secretsmanager_secret_version" "db_password" {
   depends_on = [aws_db_instance.main]
 }
 
+# JWT secret for auth tokens
+
+resource "random_password" "jwt" {
+  length  = 64
+  special = false
+}
+
+resource "aws_secretsmanager_secret" "jwt_secret" {
+  name = "${local.name_prefix}-jwt-secret"
+}
+
+resource "aws_secretsmanager_secret_version" "jwt_secret" {
+  secret_id     = aws_secretsmanager_secret.jwt_secret.id
+  secret_string = random_password.jwt.result
+}
+
 # GHCR credentials (value added manually in AWS Console)
 
 resource "aws_secretsmanager_secret" "ghcr" {
@@ -94,6 +110,7 @@ resource "aws_iam_policy" "secrets_access" {
       Resource = [
         aws_secretsmanager_secret.db_password.arn,
         aws_secretsmanager_secret.ghcr.arn,
+        aws_secretsmanager_secret.jwt_secret.arn,
       ]
     }]
   })
@@ -133,9 +150,14 @@ resource "aws_ecs_task_definition" "api" {
       secrets = [{
         name      = "DATABASE_URL"
         valueFrom = aws_secretsmanager_secret.db_password.arn
+      }, {
+        name      = "JWT_SECRET"
+        valueFrom = aws_secretsmanager_secret.jwt_secret.arn
       }]
 
       environment = [
+        { name = "APP_ENV", value = var.environment },
+        { name = "SECURE_COOKIES", value = tostring(var.environment == "prod") },
         { name = "OTEL_ENABLED", value = "true" },
         { name = "OTEL_ENDPOINT", value = "http://localhost:4317" },
         { name = "OTEL_SERVICE_NAME", value = "${local.name_prefix}-api" },

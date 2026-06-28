@@ -41,7 +41,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-replace-in-production}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
       ACCESS_TOKEN_TTL_SECONDS: ${ACCESS_TOKEN_TTL_SECONDS:-900}
-      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-.notebook.com}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
       APP_ENV: ${APP_ENV:-dev}
       OTEL_ENABLED: ${OTEL_ENABLED:-false}
       OTEL_ENDPOINT: ${OTEL_ENDPOINT:-http://aspire-dashboard:18889}
