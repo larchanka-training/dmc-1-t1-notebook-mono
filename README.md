@@ -90,6 +90,7 @@ make up
 
 ### QA
 
+- [Automation Test Strategy](docs/automation-test-strategy.md)
 - [QA Plan](docs/qa/qa-plan.md)
 - [Execution QA Plan](docs/qa/execution-qa-plan.md)
 - [Definition of Done](docs/qa/definition-of-done.md)
