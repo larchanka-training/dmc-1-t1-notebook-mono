@@ -102,6 +102,7 @@ make up
 - [Performance Report](docs/performance-report.md)
 - [Security Review](docs/security-review.md)
 - [Cost Analysis](docs/cost-analysis.md)
+- [Launch Presentation](docs/launch-presentation.md)
 
 ---
 
