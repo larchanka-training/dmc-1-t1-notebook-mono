@@ -39,7 +39,7 @@ Markdown ячейка
 
 ### `BrowserLLMStatus.tsx` — индикатор в тулбаре
 
-Отображается рядом с `KernelStatus` (JavaScript · idle/busy):
+Отображается в правой части тулбара рядом с `KernelStatus` (JavaScript · idle/busy) и `ThemeToggle` (переключение тёмной/светлой темы):
 
 | Статус | Индикатор |
 |--------|-----------|
