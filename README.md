@@ -83,6 +83,7 @@ make up
 - [Окружения](docs/dev-ops/environments.md)
 - [GitHub Actions](docs/dev-ops/github-actions.md)
 - [Deployment runbook](docs/dev-ops/deployment-runbook.md)
+- [Disaster Recovery Runbook](docs/runbook.md)
 - [Управление секретами](docs/dev-ops/secrets-management.md)
 - [PR previews](docs/dev-ops/pr-previews.md)
 - [Submodules](docs/dev-ops/submodules.md)
