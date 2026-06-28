@@ -100,6 +100,8 @@ make up
 ### Отчёты
 
 - [Performance Report](docs/performance-report.md)
+- [Security Review](docs/security-review.md)
+- [Cost Analysis](docs/cost-analysis.md)
 
 ---
 
