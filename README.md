@@ -99,6 +99,7 @@ make up
 
 ### Отчёты
 
+- [Production Readiness Audit](docs/production-readiness.md)
 - [Performance Report](docs/performance-report.md)
 - [Security Review](docs/security-review.md)
 - [Cost Analysis](docs/cost-analysis.md)
