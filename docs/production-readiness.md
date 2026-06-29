@@ -1,4 +1,4 @@
-# Production Readiness Audit
+# Production Readiness Audit (Аудит готовности к production)
 
 > Issue [#174](https://github.com/larchanka-training/js-notebook/issues/174) — Tech Lead Tech Audit
 

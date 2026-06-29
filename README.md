@@ -64,11 +64,11 @@ make up
 - [Обзор архитектуры](docs/architecture.md)
 - [Модель Notebook](docs/architecture/notebook-model.md)
 - [Архитектура выполнения](docs/architecture/execution-architecture.md)
-- [Web Worker execution engine](docs/architecture/web-worker-execution-engine.md)
+- [Web Worker execution engine (движок выполнения)](docs/architecture/web-worker-execution-engine.md)
 - [AI генерация кода](docs/architecture/ai-generation.md)
 - [AI контекст notebook](docs/architecture/ai-notebook-context.md)
 - [AI валидация вывода](docs/architecture/ai-output-validation.md)
-- [Browser LLM](docs/architecture/browser-llm.md)
+- [Browser LLM (браузерная LLM)](docs/architecture/browser-llm.md)
 
 ### Гайды
 
@@ -81,31 +81,32 @@ make up
 
 - [AWS инфраструктура](docs/dev-ops/aws-infrastructure.md)
 - [Окружения](docs/dev-ops/environments.md)
-- [GitHub Actions](docs/dev-ops/github-actions.md)
-- [Deployment runbook](docs/dev-ops/deployment-runbook.md)
-- [Disaster Recovery Runbook](docs/runbook.md)
+- [GitHub Actions (CI/CD пайплайны)](docs/dev-ops/github-actions.md)
+- [Deployment runbook (runbook деплоя)](docs/dev-ops/deployment-runbook.md)
+- [Disaster Recovery Runbook (runbook восстановления)](docs/runbook.md)
 - [Управление секретами](docs/dev-ops/secrets-management.md)
-- [PR previews](docs/dev-ops/pr-previews.md)
-- [Submodules](docs/dev-ops/submodules.md)
+- [PR previews (превью для PR)](docs/dev-ops/pr-previews.md)
+- [Submodules (сабмодули)](docs/dev-ops/submodules.md)
 - [Observability в AWS](docs/dev-ops/observability-aws.md)
 
 ### QA
 
-- [Automation Test Strategy](docs/automation-test-strategy.md)
-- [QA Plan](docs/qa/qa-plan.md)
-- [Execution QA Plan](docs/qa/execution-qa-plan.md)
-- [Definition of Done](docs/qa/definition-of-done.md)
-- [PR Manual Check Process](docs/qa/pr-manual-check-process.md)
-- [Acceptance Criteria Template](docs/qa/acceptance-criteria-template.md)
-- [Bug Reporting Guide](docs/qa/bug-reporting-guide.md)
+- [Automation Test Strategy (стратегия автоматизации тестирования)](docs/automation-test-strategy.md)
+- [QA Plan (план QA)](docs/qa/qa-plan.md)
+- [Execution QA Plan (план тестирования runtime)](docs/qa/execution-qa-plan.md)
+- [Definition of Done (критерии завершения)](docs/qa/definition-of-done.md)
+- [PR Manual Check Process (процесс ручной проверки PR)](docs/qa/pr-manual-check-process.md)
+- [Acceptance Criteria Template (шаблон критериев приёмки)](docs/qa/acceptance-criteria-template.md)
+- [Bug Reporting Guide (руководство по баг-репортам)](docs/qa/bug-reporting-guide.md)
 
 ### Отчёты
 
-- [Production Readiness Audit](docs/production-readiness.md)
-- [Performance Report](docs/performance-report.md)
-- [Security Review](docs/security-review.md)
-- [Cost Analysis](docs/cost-analysis.md)
-- [Launch Presentation](docs/launch-presentation.md)
+- [Production Readiness Audit (аудит готовности к production)](docs/production-readiness.md)
+- [Release Report (отчёт о сертификации релиза)](docs/release-report.md)
+- [Performance Report (отчёт о производительности)](docs/performance-report.md)
+- [Security Review (аудит безопасности)](docs/security-review.md)
+- [Cost Analysis (анализ затрат)](docs/cost-analysis.md)
+- [Launch Presentation (презентация запуска)](docs/launch-presentation.md)
 
 ---
 
